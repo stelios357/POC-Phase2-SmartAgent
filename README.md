@@ -30,7 +30,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run the application
-python src/app.py --port 5001
+python run_app.py --port 5001
+```
+
+## Direct Python Execution
+
+You can also run the application directly:
+
+```bash
+# From project root
+python run_app.py --port 5001
+
+# Or from src directory (not recommended due to import issues)
+cd src && PYTHONPATH=.. python app.py --port 5001
 ```
 
 ## Usage

@@ -33,6 +33,7 @@
             --border-radius-md: 0.5rem;
             --border-radius-lg: 0.75rem;
             --border-radius-xl: 1rem;
+            --border-color-light: #e5e7eb;
         }
 
         * {
@@ -209,6 +210,62 @@
 
         .input-group .form-input {
             flex: 1;
+        }
+
+        /* Batch Stock Rows */
+        .batch-stock-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background: var(--background-secondary);
+            border: 1px solid var(--border-color-light);
+            border-radius: var(--border-radius-md);
+        }
+
+        .batch-ticker-input {
+            flex: 2;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .batch-ticker-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .batch-suffix-select {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .batch-suffix-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .remove-stock-btn {
+            padding: 0.5rem;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            background: var(--error-color);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .remove-stock-btn:hover {
+            background: #dc2626;
         }
 
         /* Button Styles */
@@ -853,12 +910,37 @@
         </div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label class="form-label" for="batchTickers">
-                                    <i class="fas fa-list"></i> Ticker Symbols (comma-separated)
+                                <label class="form-label">
+                                    <i class="fas fa-list"></i> Add Stocks with Suffixes
                                 </label>
-                                <input type="text" id="batchTickers" class="form-input"
-                                       placeholder="e.g., AAPL,GOOGL,MSFT,TSLA" value="AAPL,GOOGL">
-    </div>
+                                <div id="batchStocksContainer" class="mb-3">
+                                    <div class="batch-stock-row" data-index="0">
+                                        <input type="text" class="batch-ticker-input" placeholder="e.g., AAPL" value="AAPL">
+                                        <select class="batch-suffix-select">
+                                            <option value="global">Global</option>
+                                            <option value="nse" selected>NSE</option>
+                                            <option value="bse">BSE</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-danger remove-stock-btn" onclick="removeStockRow(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="batch-stock-row" data-index="1">
+                                        <input type="text" class="batch-ticker-input" placeholder="e.g., GOOGL" value="GOOGL">
+                                        <select class="batch-suffix-select">
+                                            <option value="global">Global</option>
+                                            <option value="nse" selected>NSE</option>
+                                            <option value="bse">BSE</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-danger remove-stock-btn" onclick="removeStockRow(this)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="addStockRow()" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-plus"></i> Add Another Stock
+                                </button>
+                            </div>
 
                             <button onclick="fetchBatchStocks()" class="btn btn-primary" style="width: 100%;">
                                 <i class="fas fa-rocket"></i> Analyze Multiple Stocks
@@ -966,7 +1048,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    displayStockData(data.data, ticker, data.source);
+                    displayStockData(data.data, ticker, data.source, exchange);
                     showSuccess(`Historical data loaded from ${data.source}`);
                 } else {
                     showError(data.message || 'Failed to fetch stock data');
@@ -1035,18 +1117,71 @@
             showLoading(false);
         }
 
+        function addStockRow(ticker = '', suffix = 'nse') {
+            const container = document.getElementById('batchStocksContainer');
+            const rowCount = container.children.length;
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'batch-stock-row';
+            rowDiv.setAttribute('data-index', rowCount);
+
+            rowDiv.innerHTML = `
+                <input type="text" class="batch-ticker-input" placeholder="e.g., AAPL" value="${ticker}">
+                <select class="batch-suffix-select">
+                    <option value="global" ${suffix === 'global' ? 'selected' : ''}>Global</option>
+                    <option value="nse" ${suffix === 'nse' ? 'selected' : ''}>NSE</option>
+                    <option value="bse" ${suffix === 'bse' ? 'selected' : ''}>BSE</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-danger remove-stock-btn" onclick="removeStockRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+
+            container.appendChild(rowDiv);
+        }
+
+        function removeStockRow(button) {
+            const row = button.closest('.batch-stock-row');
+            const container = document.getElementById('batchStocksContainer');
+
+            // Only remove if there will be at least one row left
+            if (container.children.length > 1) {
+                row.remove();
+                // Update indices
+                const rows = container.querySelectorAll('.batch-stock-row');
+                rows.forEach((row, index) => {
+                    row.setAttribute('data-index', index);
+                });
+            } else {
+                showError('At least one stock is required');
+            }
+        }
+
         async function fetchBatchStocks() {
-            const tickersInput = document.getElementById('batchTickers').value.trim();
-            const exchange = document.getElementById('exchange').value;
-            if (!tickersInput) {
-                showError('Please enter ticker symbols');
+            const stockRows = document.querySelectorAll('.batch-stock-row');
+            if (stockRows.length === 0) {
+                showError('Please add at least one stock');
                 return;
             }
 
-            const tickers = tickersInput.split(',').map(t => t.trim().toUpperCase()).filter(t => t);
+            const stocksData = [];
+            for (const row of stockRows) {
+                const tickerInput = row.querySelector('.batch-ticker-input');
+                const suffixSelect = row.querySelector('.batch-suffix-select');
 
-            if (tickers.length === 0) {
-                showError('Please enter valid ticker symbols');
+                const ticker = tickerInput.value.trim().toUpperCase();
+                const suffix = suffixSelect.value;
+
+                if (!ticker) {
+                    showError('Please enter a ticker symbol for all stocks');
+                    return;
+                }
+
+                stocksData.push({ ticker: ticker, suffix: suffix });
+            }
+
+            if (stocksData.length === 0) {
+                showError('Please add valid stocks');
                 return;
             }
 
@@ -1058,7 +1193,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ tickers: tickers, exchange: exchange })
+                    body: JSON.stringify({ stocks: stocksData })
                 });
 
                 const data = await response.json();
@@ -1354,7 +1489,7 @@
                         const patterns = (data.pattern_data.pattern_analysis && data.pattern_data.pattern_analysis[ticker]) || [];
                         const latestCandle = data.pattern_data.latest_candles ? data.pattern_data.latest_candles[ticker] : null;
 
-                        const currency = getCurrencySymbol(ticker);
+                        const currency = (priceInfo && priceInfo.currency === 'INR') ? '₹' : getCurrencySymbol(ticker);
                         const price = priceInfo && typeof priceInfo.price === 'number' ? priceInfo.price : 0;
                         const change = priceInfo && typeof priceInfo.day_change === 'number' ? priceInfo.day_change : 0;
                         const changePercent = priceInfo && typeof priceInfo.day_change_percent === 'number' ? priceInfo.day_change_percent : 0;
@@ -1478,7 +1613,7 @@
 
                     if (data.current_price_data) {
                         Object.entries(data.current_price_data).forEach(([ticker, priceInfo]) => {
-                            const currency = getCurrencySymbol(ticker);
+                            const currency = (priceInfo.currency === 'INR') ? '₹' : getCurrencySymbol(ticker);
                             const price = priceInfo.price || 0;
                             const change = priceInfo.day_change || 0;
                             const changePercent = priceInfo.day_change_percent || 0;
@@ -1555,7 +1690,8 @@
                             if (summary.full_intraday_data && data.ohlcv_data && data.ohlcv_data[ticker]) {
                                 const intradayData = data.ohlcv_data[ticker];
                                 const dataPoints = Object.keys(intradayData).length;
-                                const currency = getCurrencySymbol(ticker);
+                                // For intraday data, assume INR for Indian stocks
+                                const currency = ticker.includes('.NS') || ticker.includes('.BO') || ticker.startsWith('^NSE') ? '₹' : getCurrencySymbol(ticker);
 
                                 html += `
                                     <div style="background: var(--background-tertiary); padding: 1.5rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
@@ -1579,7 +1715,7 @@
                                 `;
                             } else if (summary.close) {
                                 // Standard OHLCV summary display
-                                const currency = getCurrencySymbol(ticker);
+                                const currency = ticker.includes('.NS') || ticker.includes('.BO') || ticker.startsWith('^NSE') ? '₹' : getCurrencySymbol(ticker);
                                 const changeClass = summary.change_percent >= 0 ? 'positive' : 'negative';
                                 const changeSymbol = summary.change_percent >= 0 ? '↗' : '↘';
 
@@ -1730,7 +1866,7 @@
             resultDiv.insertAdjacentHTML('afterbegin', `<div class="success">${message}</div>`);
         }
 
-        function displayStockData(data, ticker, source) {
+        function displayStockData(data, ticker, source, exchange) {
             const resultDiv = document.getElementById('result');
             resultDiv.innerHTML = '';
 
@@ -1748,7 +1884,7 @@
             const dates = Object.keys(data).sort();
             const latestDate = dates[dates.length - 1];
             const latestData = data[latestDate];
-            const currency = getCurrencySymbol(ticker);
+            const currency = (exchange === 'nse' || exchange === 'bse') ? '₹' : '$';
 
             resultDiv.innerHTML = `
                 <div class="data-card">
@@ -1791,7 +1927,7 @@
             const resultDiv = document.getElementById('result');
             const changeClass = data.change_percent >= 0 ? 'positive' : 'negative';
             const changeSymbol = data.change_percent >= 0 ? '↗' : '↘';
-            const currency = getCurrencySymbol(ticker);
+            const currency = data.currency === 'INR' ? '₹' : '$';
 
             resultDiv.innerHTML = `
                 <div class="data-card">
@@ -1865,7 +2001,7 @@
             const resultDiv = document.getElementById('result');
             const changeClass = data.day_change_percent >= 0 ? 'positive' : 'negative';
             const changeSymbol = data.day_change_percent >= 0 ? '↗' : '↘';
-            const currency = getCurrencySymbol(ticker);
+            const currency = data.currency === 'INR' ? '₹' : '$';
 
             resultDiv.innerHTML = `
                 <div class="data-card">
@@ -1958,7 +2094,7 @@
                 const dates = Object.keys(stockData).sort();
                 const latestDate = dates[dates.length - 1];
                 const latestData = stockData[latestDate];
-                const currency = getCurrencySymbol(ticker);
+                const currency = ticker.includes('.NS') || ticker.includes('.BO') || ticker.startsWith('^NSE') ? '₹' : getCurrencySymbol(ticker);
 
                 html += `
                     <tr>
@@ -2078,7 +2214,7 @@
                                     return new Date(context[0].label).toLocaleDateString();
                                 },
                                 label: function(context) {
-                                    const currency = getCurrencySymbol(ticker);
+                                    const currency = ticker.includes('.NS') || ticker.includes('.BO') || ticker.startsWith('^NSE') ? '₹' : getCurrencySymbol(ticker);
                                     return `${ticker}: ${currency}${context.parsed.y.toFixed(2)}`;
                                 }
                             }
@@ -2120,7 +2256,7 @@
                             },
                             ticks: {
                                 callback: function(value) {
-                                    const currency = getCurrencySymbol(ticker);
+                                    const currency = ticker.includes('.NS') || ticker.includes('.BO') || ticker.startsWith('^NSE') ? '₹' : getCurrencySymbol(ticker);
                                     return currency + value.toFixed(2);
                                 },
                                 font: {

@@ -190,25 +190,32 @@ def get_stocks_batch():
         data = request.get_json()
         logging.debug(f"DEBUG: get_stocks_batch() - Request data parsed: {data is not None}")
 
-        if not data or 'tickers' not in data:
-            logging.debug("DEBUG: get_stocks_batch() - Missing tickers parameter in request")
-            payload, status = api_error('Missing tickers parameter', 'Tickers must be provided', status_code=400)
-            logging.debug("DEBUG: get_stocks_batch() - Returning missing tickers error response")
+        if not data or 'stocks' not in data:
+            logging.debug("DEBUG: get_stocks_batch() - Missing stocks parameter in request")
+            payload, status = api_error('Missing stocks parameter', 'Stocks must be provided', status_code=400)
+            logging.debug("DEBUG: get_stocks_batch() - Returning missing stocks error response")
             return jsonify(payload), status
 
-        tickers = data['tickers']
-        exchange = data.get('exchange', 'nse')  # default to nse
-        logging.debug(f"DEBUG: get_stocks_batch() - Tickers extracted: {tickers}, exchange: {exchange}")
+        stocks = data['stocks']
+        logging.debug(f"DEBUG: get_stocks_batch() - Stocks extracted: {stocks}")
 
-        if not isinstance(tickers, list) or len(tickers) > 20:
-            logging.debug(f"DEBUG: get_stocks_batch() - Invalid tickers format or count. Type: {type(tickers)}, Length: {len(tickers) if isinstance(tickers, list) else 'N/A'}")
-            payload, status = api_error('Invalid tickers', 'Tickers must be a list with max 20 items', status_code=400)
-            logging.debug("DEBUG: get_stocks_batch() - Returning invalid tickers error response")
+        if not isinstance(stocks, list) or len(stocks) > 20:
+            logging.debug(f"DEBUG: get_stocks_batch() - Invalid stocks format or count. Type: {type(stocks)}, Length: {len(stocks) if isinstance(stocks, list) else 'N/A'}")
+            payload, status = api_error('Invalid stocks', 'Stocks must be a list with max 20 items', status_code=400)
+            logging.debug("DEBUG: get_stocks_batch() - Returning invalid stocks error response")
             return jsonify(payload), status
 
-        logging.debug(f"DEBUG: get_stocks_batch() - Fetching batch data for {len(tickers)} tickers")
+        # Validate stock format
+        tickers = []
+        for stock in stocks:
+            if not isinstance(stock, dict) or 'ticker' not in stock or 'suffix' not in stock:
+                payload, status = api_error('Invalid stock format', 'Each stock must have ticker and suffix fields', status_code=400)
+                return jsonify(payload), status
+            tickers.append(stock['ticker'])
+
+        logging.debug(f"DEBUG: get_stocks_batch() - Fetching batch data for {len(stocks)} stocks")
         # Get batch data
-        results = data_service.get_batch_history(tickers, period="1y", exchange=exchange)
+        results = data_service.get_batch_history(stocks, period="1y")
         logging.debug(f"DEBUG: get_stocks_batch() - Batch fetch completed, results count: {len(results)}")
 
         # Convert to JSON-serializable format

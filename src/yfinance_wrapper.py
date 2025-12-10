@@ -467,24 +467,29 @@ def get_stock_info(ticker: str, exchange: str = 'nse') -> Dict:
 
     return retry_with_backoff(lambda: safe_yfinance_call("get_info", ticker, _fetch_info, exchange))
 
-def get_multiple_stocks(tickers: List[str], period: str = None, batch_size: int = 10, exchange: str = 'nse') -> Dict[str, pd.DataFrame]:
+def get_multiple_stocks(tickers: List[str], period: str = None, batch_size: int = 10, exchange: str = 'nse', suffixes: List[str] = None) -> Dict[str, pd.DataFrame]:
     """Batch download multiple stocks efficiently"""
 
     if period is None:
         period = API_CONFIG["default_period"]
+
+    # If suffixes provided, use them per ticker, otherwise use global exchange
+    if suffixes is None:
+        suffixes = [exchange] * len(tickers)
 
     results = {}
 
     # Process in batches to avoid rate limits
     for i in range(0, len(tickers), batch_size):
         batch = tickers[i:i + batch_size]
+        batch_suffixes = suffixes[i:i + batch_size]
 
         try:
             def _fetch_batch():
                 # yf.download doesn't support our custom resolution logic, so we must map manually
                 # if we want to support it. For now, assuming batch tickers are valid.
                 # Ideally, we should resolve each ticker in the batch first.
-                resolved_batch = [resolve_ticker(t, exchange) for t in batch]
+                resolved_batch = [resolve_ticker(t, s) for t, s in zip(batch, batch_suffixes)]
                 
                 df = yf.download(resolved_batch, period=period, group_by='ticker',
                                timeout=API_CONFIG["timeout"])
@@ -513,9 +518,9 @@ def get_multiple_stocks(tickers: List[str], period: str = None, batch_size: int 
             logging.getLogger("yfinance_api").error(f"Batch download failed for {batch}: {e}")
 
             # Fallback to individual fetches
-            for ticker in batch:
+            for ticker, suffix in zip(batch, batch_suffixes):
                 try:
-                    results[ticker] = get_stock_history(ticker, period)
+                    results[ticker] = get_stock_history(ticker, period, exchange=suffix)
                 except Exception as individual_e:
                     logging.getLogger("yfinance_api").error(f"Individual fetch failed for {ticker}: {individual_e}")
 

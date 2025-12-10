@@ -9,7 +9,7 @@ fetchers.
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -92,8 +92,11 @@ class DataService:
             context=context,
         )
 
-    def get_batch_history(self, tickers: List[str], period: Optional[str] = None, exchange: str = "nse"):
-        return yf.get_multiple_stocks(tickers, period=period, exchange=exchange)
+    def get_batch_history(self, stocks: List[Dict[str, str]], period: Optional[str] = None):
+        # Extract tickers and suffixes
+        tickers = [stock['ticker'] for stock in stocks]
+        suffixes = [stock['suffix'] for stock in stocks]
+        return yf.get_multiple_stocks(tickers, period=period, suffixes=suffixes)
 
     def get_latest_candle(
         self,
