@@ -7,18 +7,16 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
 
-from .data_fetcher import data_fetcher, DataFetcherError, InvalidTickerError, NoDataError
-from .pattern_detector import pattern_detector
+from .data_fetcher import DataFetcherError, InvalidTickerError, NoDataError
 from .response_formatter import response_formatter
-from .yfinance_wrapper import get_stock_history
+from .services.data_service import data_service
+from .services.pattern_service import pattern_service
 
 class CandlestickAnalyzer:
     """Main analyzer class for candlestick pattern detection"""
 
     def __init__(self):
         logging.debug("DEBUG: CandlestickAnalyzer.__init__() - Initializing analyzer")
-        self.data_fetcher = data_fetcher
-        self.pattern_detector = pattern_detector
         self.response_formatter = response_formatter
         logging.debug("DEBUG: CandlestickAnalyzer.__init__() - Analyzer initialized with all components")
 
@@ -33,6 +31,7 @@ class CandlestickAnalyzer:
             ticker = query_data.get('ticker', '').strip()
             timeframe = query_data.get('timeframe', '1d').strip()
             query_type = query_data.get('query_type', 'pattern_detection')
+            pattern = query_data.get('pattern')
             specific_date = query_data.get('date')  # Check for specific date
 
             if not ticker:
@@ -54,8 +53,14 @@ class CandlestickAnalyzer:
                     start_date = (date_obj - timedelta(days=5)).strftime('%Y-%m-%d')
                     end_date = (date_obj + timedelta(days=5)).strftime('%Y-%m-%d')
 
-                    history_df = get_stock_history(ticker, start_date=start_date, end_date=end_date,
-                                                 timeframe=timeframe, data_source=data_source, context="pattern")
+                    history_df = data_service.get_history(
+                        ticker,
+                        start_date=start_date,
+                        end_date=end_date,
+                        timeframe=timeframe,
+                        data_source=data_source,
+                        context="pattern",
+                    )
 
                     if history_df.empty:
                         raise NoDataError(f"No data available for {ticker} around {specific_date}")
@@ -91,8 +96,13 @@ class CandlestickAnalyzer:
                 elif timeframe == "1mo":
                     fetch_period = "2y"
 
-                history_df = get_stock_history(ticker, period=fetch_period, timeframe=timeframe,
-                                             data_source=data_source, context="pattern")
+                history_df = data_service.get_history(
+                    ticker,
+                    period=fetch_period,
+                    timeframe=timeframe,
+                    data_source=data_source,
+                    context="pattern",
+                )
 
                 if history_df.empty:
                     raise NoDataError(f"No data available for {ticker}")
@@ -147,7 +157,7 @@ class CandlestickAnalyzer:
 
             # Step 2: Detect patterns using full history dataframe
             logging.debug("DEBUG: CandlestickAnalyzer.analyze_patterns() - Detecting patterns with history")
-            detected_patterns = self.pattern_detector.detect_all_patterns(history_df)
+            detected_patterns = pattern_service.detect_patterns(history_df, pattern)
             
             # Step 3: Format response
             logging.debug("DEBUG: CandlestickAnalyzer.analyze_patterns() - Formatting response")

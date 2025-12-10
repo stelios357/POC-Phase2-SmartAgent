@@ -289,3 +289,23 @@ class ResponseFormatter:
 # Global instance for easy access
 response_formatter = ResponseFormatter()
 
+
+def api_success(data: Optional[Dict] = None, message: Optional[str] = None, **meta) -> Dict:
+    """Lightweight API success envelope to keep responses consistent."""
+    payload: Dict[str, Any] = {"success": True}
+    if data is not None:
+        payload["data"] = data
+    if message:
+        payload["message"] = message
+    if meta:
+        payload.update(meta)
+    return payload
+
+
+def api_error(error: str, message: str, status_code: int = 400, **meta):
+    """Lightweight API error envelope with optional status code."""
+    payload: Dict[str, Any] = {"success": False, "error": error, "message": message}
+    if meta:
+        payload.update(meta)
+    return payload, status_code
+

@@ -10,17 +10,19 @@ import sys
 import logging
 from flask_cors import CORS
 
+from .services.data_service import data_service
 from .yfinance_wrapper import (
-    get_stock_history, get_stock_info, get_multiple_stocks,
-    get_latest_candle, get_current_price,
-    InvalidTickerError, RateLimitError, NetworkError, resolve_ticker,
-    convert_temporal_context_to_dates
+    InvalidTickerError, RateLimitError, NetworkError,
 )
 from .cache_manager import cache_manager
 from .logging_config import log_performance_metric
 from .query_parser import parse_query
-from .pattern_detector import PatternDetector
+from .services.pattern_service import pattern_service
+from .response_formatter import api_success, api_error
 
+
+logger = logging.getLogger(__name__)
+DEBUG_ENABLED = logger.isEnabledFor(logging.DEBUG)
 
 def create_detailed_multi_stock_summary(executed_actions, response_data, tickers):
     """
@@ -104,13 +106,14 @@ def index():
 @app.route('/api/stock/<ticker>')
 def get_stock(ticker):
     """API endpoint for single stock data"""
-    logging.debug(f"DEBUG: get_stock() - Function called with ticker: {ticker}")
+    if DEBUG_ENABLED:
+        logger.debug("get_stock request ticker=%s", ticker)
     start_time = datetime.utcnow()
-    logging.debug(f"DEBUG: get_stock() - Start time recorded: {start_time}")
 
     # Get exchange parameter from query string
     exchange = request.args.get('exchange', 'nse')  # default to nse
-    logging.debug(f"DEBUG: get_stock() - Exchange parameter: {exchange}")
+    if DEBUG_ENABLED:
+        logger.debug("get_stock exchange=%s", exchange)
 
     try:
         logging.debug(f"DEBUG: get_stock() - Attempting to get cached data for ticker: {ticker}, period: 1y")
@@ -123,18 +126,13 @@ def get_stock(ticker):
             # Return cached data
             data = {str(k): v for k, v in cached_data.to_dict('index').items()}
             logging.debug(f"DEBUG: get_stock() - Converted cached data to dict format, keys count: {len(data)}")
-            result = jsonify({
-                'success': True,
-                'data': data,
-                'source': 'cache',
-                'timestamp': datetime.utcnow().isoformat()
-            })
+            result = jsonify(api_success(data=data, source='cache', timestamp=datetime.utcnow().isoformat()))
             logging.debug("DEBUG: get_stock() - Returning cached data response")
             return result
 
         logging.debug(f"DEBUG: get_stock() - Cache miss, fetching from API for ticker: {ticker}")
         # Fetch from API with exchange context
-        df = get_stock_history(ticker, period="1y", exchange=exchange)
+        df = data_service.get_history(ticker, period="1y", exchange=exchange)
         logging.debug(f"DEBUG: get_stock() - API fetch successful, dataframe shape: {df.shape}")
 
         # Cache the result
@@ -151,62 +149,41 @@ def get_stock(ticker):
         log_performance_metric("single_stock_fetch", duration)
         logging.debug(f"DEBUG: get_stock() - Performance logged: {duration} seconds")
 
-        result = jsonify({
-            'success': True,
-            'data': data,
-            'source': 'api',
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(data=data, source='api', timestamp=datetime.utcnow().isoformat()))
         logging.debug("DEBUG: get_stock() - Returning API data response")
         return result
 
     except InvalidTickerError as e:
         logging.debug(f"DEBUG: get_stock() - InvalidTickerError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Invalid ticker symbol',
-            'message': str(e)
-        }), 400
+        payload, status = api_error('Invalid ticker symbol', str(e), status_code=400)
         logging.debug("DEBUG: get_stock() - Returning InvalidTickerError response")
-        return result
+        return jsonify(payload), status
 
     except RateLimitError as e:
         logging.debug(f"DEBUG: get_stock() - RateLimitError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Rate limit exceeded',
-            'message': 'Please try again later'
-        }), 429
+        payload, status = api_error('Rate limit exceeded', 'Please try again later', status_code=429)
         logging.debug("DEBUG: get_stock() - Returning RateLimitError response")
-        return result
+        return jsonify(payload), status
 
     except NetworkError as e:
         logging.debug(f"DEBUG: get_stock() - NetworkError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Network error',
-            'message': 'Unable to fetch data. Please try again.'
-        }), 503
+        payload, status = api_error('Network error', 'Unable to fetch data. Please try again.', status_code=503)
         logging.debug("DEBUG: get_stock() - Returning NetworkError response")
-        return result
+        return jsonify(payload), status
 
     except Exception as e:
         logging.error(f"Unexpected error for ticker {ticker}: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_stock() - Unexpected Exception caught for ticker: {ticker}, type: {type(e).__name__}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        }), 500
+        payload, status = api_error('Internal server error', 'An unexpected error occurred', status_code=500)
         logging.debug("DEBUG: get_stock() - Returning unexpected error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/stocks/batch', methods=['POST'])
 def get_stocks_batch():
     """API endpoint for multiple stocks"""
-    logging.debug("DEBUG: get_stocks_batch() - Function called for batch stock request")
+    if DEBUG_ENABLED:
+        logger.debug("get_stocks_batch request received")
     start_time = datetime.utcnow()
-    logging.debug(f"DEBUG: get_stocks_batch() - Start time recorded: {start_time}")
 
     try:
         logging.debug("DEBUG: get_stocks_batch() - Parsing JSON request data")
@@ -215,12 +192,9 @@ def get_stocks_batch():
 
         if not data or 'tickers' not in data:
             logging.debug("DEBUG: get_stocks_batch() - Missing tickers parameter in request")
-            result = jsonify({
-                'success': False,
-                'error': 'Missing tickers parameter'
-            }), 400
+            payload, status = api_error('Missing tickers parameter', 'Tickers must be provided', status_code=400)
             logging.debug("DEBUG: get_stocks_batch() - Returning missing tickers error response")
-            return result
+            return jsonify(payload), status
 
         tickers = data['tickers']
         exchange = data.get('exchange', 'nse')  # default to nse
@@ -228,16 +202,13 @@ def get_stocks_batch():
 
         if not isinstance(tickers, list) or len(tickers) > 20:
             logging.debug(f"DEBUG: get_stocks_batch() - Invalid tickers format or count. Type: {type(tickers)}, Length: {len(tickers) if isinstance(tickers, list) else 'N/A'}")
-            result = jsonify({
-                'success': False,
-                'error': 'Tickers must be a list with max 20 items'
-            }), 400
+            payload, status = api_error('Invalid tickers', 'Tickers must be a list with max 20 items', status_code=400)
             logging.debug("DEBUG: get_stocks_batch() - Returning invalid tickers error response")
-            return result
+            return jsonify(payload), status
 
         logging.debug(f"DEBUG: get_stocks_batch() - Fetching batch data for {len(tickers)} tickers")
         # Get batch data
-        results = get_multiple_stocks(tickers, period="1y", exchange=exchange)
+        results = data_service.get_batch_history(tickers, period="1y", exchange=exchange)
         logging.debug(f"DEBUG: get_stocks_batch() - Batch fetch completed, results count: {len(results)}")
 
         # Convert to JSON-serializable format
@@ -252,25 +223,20 @@ def get_stocks_batch():
         log_performance_metric("batch_stocks_fetch", duration, f"seconds_for_{len(tickers)}_stocks")
         logging.debug(f"DEBUG: get_stocks_batch() - Performance logged: {duration} seconds for {len(tickers)} stocks")
 
-        result = jsonify({
-            'success': True,
-            'data': response_data,
-            'count': len(results),
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(
+            data=response_data,
+            count=len(results),
+            timestamp=datetime.utcnow().isoformat()
+        ))
         logging.debug("DEBUG: get_stocks_batch() - Returning successful batch response")
         return result
 
     except Exception as e:
         app.logger.error(f"Batch request error: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_stocks_batch() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        }), 500
+        payload, status = api_error('Internal server error', 'An unexpected error occurred', status_code=500)
         logging.debug("DEBUG: get_stocks_batch() - Returning batch error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/stock/<ticker>/info')
 def get_stock_info_endpoint(ticker):
@@ -279,37 +245,25 @@ def get_stock_info_endpoint(ticker):
 
     try:
         logging.debug(f"DEBUG: get_stock_info_endpoint() - Fetching stock info for ticker: {ticker}")
-        info = get_stock_info(ticker)
+        info = data_service.get_stock_info(ticker)
         logging.debug(f"DEBUG: get_stock_info_endpoint() - Stock info fetched successfully, keys: {list(info.keys()) if info else 'None'}")
 
-        result = jsonify({
-            'success': True,
-            'data': info,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(data=info, timestamp=datetime.utcnow().isoformat()))
         logging.debug("DEBUG: get_stock_info_endpoint() - Returning successful stock info response")
         return result
 
     except InvalidTickerError as e:
         logging.debug(f"DEBUG: get_stock_info_endpoint() - InvalidTickerError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Invalid ticker symbol',
-            'message': str(e)
-        }), 400
+        payload, status = api_error('Invalid ticker symbol', str(e), status_code=400)
         logging.debug("DEBUG: get_stock_info_endpoint() - Returning InvalidTickerError response")
-        return result
+        return jsonify(payload), status
 
     except Exception as e:
         app.logger.error(f"Info request error for {ticker}: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_stock_info_endpoint() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        }), 500
+        payload, status = api_error('Internal server error', 'An unexpected error occurred', status_code=500)
         logging.debug("DEBUG: get_stock_info_endpoint() - Returning error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/stock/<ticker>/latest')
 def get_latest_candle_endpoint(ticker):
@@ -322,37 +276,25 @@ def get_latest_candle_endpoint(ticker):
 
     try:
         logging.debug(f"DEBUG: get_latest_candle_endpoint() - Fetching latest candle for ticker: {ticker}")
-        candle = get_latest_candle(ticker, exchange=exchange, data_source="smart_fallback", context="latest")
+        candle = data_service.get_latest_candle(ticker, exchange=exchange, data_source="smart_fallback", context="latest")
         logging.debug(f"DEBUG: get_latest_candle_endpoint() - Latest candle fetched successfully: {candle}")
 
-        result = jsonify({
-            'success': True,
-            'data': candle,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(data=candle, timestamp=datetime.utcnow().isoformat()))
         logging.debug("DEBUG: get_latest_candle_endpoint() - Returning successful latest candle response")
         return result
 
     except InvalidTickerError as e:
         logging.debug(f"DEBUG: get_latest_candle_endpoint() - InvalidTickerError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Invalid ticker symbol',
-            'message': str(e)
-        }), 400
+        payload, status = api_error('Invalid ticker symbol', str(e), status_code=400)
         logging.debug("DEBUG: get_latest_candle_endpoint() - Returning InvalidTickerError response")
-        return result
+        return jsonify(payload), status
 
     except Exception as e:
         app.logger.error(f"Latest candle request error for {ticker}: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_latest_candle_endpoint() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        }), 500
+        payload, status = api_error('Internal server error', 'An unexpected error occurred', status_code=500)
         logging.debug("DEBUG: get_latest_candle_endpoint() - Returning error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/stock/<ticker>/price')
 def get_current_price_endpoint(ticker):
@@ -365,37 +307,25 @@ def get_current_price_endpoint(ticker):
 
     try:
         logging.debug(f"DEBUG: get_current_price_endpoint() - Fetching current price for ticker: {ticker}")
-        price = get_current_price(ticker, exchange=exchange)
+        price = data_service.get_current_price(ticker, exchange=exchange)
         logging.debug(f"DEBUG: get_current_price_endpoint() - Current price fetched successfully: {price}")
 
-        result = jsonify({
-            'success': True,
-            'data': price,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(data=price, timestamp=datetime.utcnow().isoformat()))
         logging.debug("DEBUG: get_current_price_endpoint() - Returning successful current price response")
         return result
 
     except InvalidTickerError as e:
         logging.debug(f"DEBUG: get_current_price_endpoint() - InvalidTickerError caught for ticker: {ticker}, error: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Invalid ticker symbol',
-            'message': str(e)
-        }), 400
+        payload, status = api_error('Invalid ticker symbol', str(e), status_code=400)
         logging.debug("DEBUG: get_current_price_endpoint() - Returning InvalidTickerError response")
-        return result
+        return jsonify(payload), status
 
     except Exception as e:
         app.logger.error(f"Current price request error for {ticker}: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_current_price_endpoint() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error',
-            'message': 'An unexpected error occurred'
-        }), 500
+        payload, status = api_error('Internal server error', 'An unexpected error occurred', status_code=500)
         logging.debug("DEBUG: get_current_price_endpoint() - Returning error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/cache/stats')
 def get_cache_stats():
@@ -407,23 +337,16 @@ def get_cache_stats():
         stats = cache_manager.get_stats()
         logging.debug(f"DEBUG: get_cache_stats() - Cache stats retrieved: {stats}")
 
-        result = jsonify({
-            'success': True,
-            'data': stats,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(data=stats, timestamp=datetime.utcnow().isoformat()))
         logging.debug("DEBUG: get_cache_stats() - Returning successful cache stats response")
         return result
 
     except Exception as e:
         app.logger.error(f"Cache stats error: {traceback.format_exc()}")
         logging.debug(f"DEBUG: get_cache_stats() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error'
-        }), 500
+        payload, status = api_error('Internal server error', 'Unable to fetch cache stats', status_code=500)
         logging.debug("DEBUG: get_cache_stats() - Returning error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/cache/clear', methods=['POST'])
 def clear_cache():
@@ -440,23 +363,19 @@ def clear_cache():
         cache_manager.clear(ticker)
         logging.debug("DEBUG: clear_cache() - Cache cleared successfully")
 
-        result = jsonify({
-            'success': True,
-            'message': f'Cache cleared for {ticker if ticker else "all tickers"}',
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        result = jsonify(api_success(
+            message=f'Cache cleared for {ticker if ticker else "all tickers"}',
+            timestamp=datetime.utcnow().isoformat()
+        ))
         logging.debug("DEBUG: clear_cache() - Returning successful cache clear response")
         return result
 
     except Exception as e:
         app.logger.error(f"Cache clear error: {traceback.format_exc()}")
         logging.debug(f"DEBUG: clear_cache() - Exception caught: {type(e).__name__}: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': 'Internal server error'
-        }), 500
+        payload, status = api_error('Internal server error', 'Unable to clear cache', status_code=500)
         logging.debug("DEBUG: clear_cache() - Returning error response")
-        return result
+        return jsonify(payload), status
 
 @app.route('/api/query', methods=['POST'])
 def natural_language_query():
@@ -472,13 +391,9 @@ def natural_language_query():
 
         if not data or 'query' not in data:
             logging.debug("DEBUG: natural_language_query() - Missing query parameter in request")
-            result = jsonify({
-                'success': False,
-                'error': 'Missing query parameter',
-                'message': 'Please provide a natural language query'
-            }), 400
+            payload, status = api_error('Missing query parameter', 'Please provide a natural language query', status_code=400)
             logging.debug("DEBUG: natural_language_query() - Returning missing query error response")
-            return result
+            return jsonify(payload), status
 
         query = data['query']
         exchange = data.get('exchange', 'nse')  # default to nse
@@ -486,13 +401,9 @@ def natural_language_query():
 
         if not query or not isinstance(query, str):
             logging.debug(f"DEBUG: natural_language_query() - Invalid query format. Query: {query}, Type: {type(query)}")
-            result = jsonify({
-                'success': False,
-                'error': 'Invalid query',
-                'message': 'Query must be a non-empty string'
-            }), 400
+            payload, status = api_error('Invalid query', 'Query must be a non-empty string', status_code=400)
             logging.debug("DEBUG: natural_language_query() - Returning invalid query error response")
-            return result
+            return jsonify(payload), status
 
         # Parse the natural language query
         logging.debug(f"DEBUG: natural_language_query() - Parsing query with spacy=False, validate_ticker=True, exchange={exchange}")
@@ -502,15 +413,15 @@ def natural_language_query():
         # Check if parsing was successful
         if parsed_result.get('error'):
             logging.debug(f"DEBUG: natural_language_query() - Query parsing failed: {parsed_result.get('message')}")
-            result = jsonify({
-                'success': False,
-                'error': 'Query parsing failed',
-                'message': parsed_result.get('message'),
-                'suggestions': parsed_result.get('suggestions', []),
-                'parsed_query': parsed_result
-            }), 400
+            payload, status = api_error(
+                'Query parsing failed',
+                parsed_result.get('message'),
+                status_code=400,
+                suggestions=parsed_result.get('suggestions', []),
+                parsed_query=parsed_result
+            )
             logging.debug("DEBUG: natural_language_query() - Returning query parsing error response")
-            return result
+            return jsonify(payload), status
 
         tickers = parsed_result.get('tickers', [])
         ticker = parsed_result['ticker']  # Backward compatibility
@@ -522,7 +433,7 @@ def natural_language_query():
         logging.debug(f"DEBUG: natural_language_query() - Parsed components - tickers: {tickers}, ticker: {ticker}, timeframes: {timeframes}, timeframe: {timeframe}, query_types: {query_types}, query_type: {query_type}, pattern: {pattern}")
 
         # Resolve tickers based on exchange selection for consistent display
-        resolved_tickers = [resolve_ticker(t, exchange) for t in tickers]
+        resolved_tickers = [data_service.resolve_ticker(t, exchange) for t in tickers]
         resolved_ticker = resolved_tickers[0] if resolved_tickers else None  # Backward compatibility
 
         # Update parsed_result with resolved tickers for UI display
@@ -559,14 +470,15 @@ def natural_language_query():
 
                 for ticker_symbol in resolved_tickers:
                     try:
-                        logging.debug(f"DEBUG: natural_language_query() - Fetching current price for ticker: {ticker_symbol}, exchange: {exchange}")
-                        price_data = get_current_price(ticker_symbol, exchange=exchange)
-                        logging.debug(f"DEBUG: natural_language_query() - Current price fetched for {ticker_symbol}: {price_data}")
+                        if DEBUG_ENABLED:
+                            logger.debug(f"Fetching current price for ticker: {ticker_symbol}, exchange: {exchange}")
+                        price_data = data_service.get_current_price(ticker_symbol, exchange=exchange)
 
                         price_results[ticker_symbol] = price_data
 
                     except Exception as e:
-                        logging.debug(f"DEBUG: natural_language_query() - Failed to fetch current price for {ticker_symbol}: {str(e)}")
+                        if DEBUG_ENABLED:
+                            logger.debug(f"Failed to fetch current price for {ticker_symbol}: {str(e)}")
                         failed_tickers.append(ticker_symbol)
                         continue
 
@@ -652,7 +564,7 @@ def natural_language_query():
 
             elif temporal_context:
                 # Convert temporal context to actual date ranges
-                ohlcv_start_date, ohlcv_end_date = convert_temporal_context_to_dates(temporal_context)
+                ohlcv_start_date, ohlcv_end_date = data_service.convert_temporal_context_to_dates(temporal_context)
                 logging.debug(f"DEBUG: natural_language_query() - Temporal context '{temporal_context}' converted to date range: {ohlcv_start_date} to {ohlcv_end_date}")
 
                 # Special handling for today
@@ -699,8 +611,16 @@ def natural_language_query():
                 for ticker_symbol in resolved_tickers:
                     try:
                         logging.debug(f"DEBUG: natural_language_query() - Fetching OHLCV data for ticker: {ticker_symbol}, timeframe: {primary_timeframe}, period: {ohlcv_period}, start_date: {ohlcv_start_date}, end_date: {ohlcv_end_date}, exchange: {exchange}")
-                        ohlcv_df = get_stock_history(ticker_symbol, period=ohlcv_period, start_date=ohlcv_start_date, end_date=ohlcv_end_date,
-                                                   timeframe=primary_timeframe, exchange=exchange, data_source="smart_fallback", context="historical")
+                        ohlcv_df = data_service.get_history(
+                            ticker_symbol,
+                            period=ohlcv_period,
+                            start_date=ohlcv_start_date,
+                            end_date=ohlcv_end_date,
+                            timeframe=primary_timeframe,
+                            exchange=exchange,
+                            data_source="smart_fallback",
+                            context="historical",
+                        )
                         logging.debug(f"DEBUG: natural_language_query() - OHLCV data fetched for {ticker_symbol}, dataframe shape: {ohlcv_df.shape}")
 
                         if ohlcv_df.empty:
@@ -920,7 +840,7 @@ def natural_language_query():
 
                         elif temporal_context:
                             # Convert temporal context to actual date ranges for pattern analysis
-                            pattern_start_date, pattern_end_date = convert_temporal_context_to_dates(temporal_context)
+                            pattern_start_date, pattern_end_date = data_service.convert_temporal_context_to_dates(temporal_context)
                             logging.debug(f"DEBUG: natural_language_query() - Temporal context '{temporal_context}' converted to date range: {pattern_start_date} to {pattern_end_date}")
 
                             # For temporal contexts, prioritize daily timeframe unless explicit intraday timeframe is specified
@@ -955,9 +875,15 @@ def natural_language_query():
 
                         if pattern_start_date and pattern_end_date:
                             # Use date range for temporal context or specific date queries
-                            ohlcv_df = get_stock_history(ticker_symbol, start_date=pattern_start_date, end_date=pattern_end_date,
-                                                       timeframe=pattern_timeframe, exchange=exchange,
-                                                       data_source="smart_fallback", context="pattern")
+                            ohlcv_df = data_service.get_history(
+                                ticker_symbol,
+                                start_date=pattern_start_date,
+                                end_date=pattern_end_date,
+                                timeframe=pattern_timeframe,
+                                exchange=exchange,
+                                data_source="smart_fallback",
+                                context="pattern",
+                            )
                         else:
                             # Use period-based fetching (original logic for timeframe-only queries)
                             # Adjust period based on timeframe to get enough candles but not too much
@@ -968,8 +894,14 @@ def natural_language_query():
                                 elif pattern_timeframe == "1mo":
                                     pattern_period = "2y"
 
-                            ohlcv_df = get_stock_history(ticker_symbol, period=pattern_period, timeframe=pattern_timeframe, exchange=exchange,
-                                                       data_source="smart_fallback", context="pattern")
+                            ohlcv_df = data_service.get_history(
+                                ticker_symbol,
+                                period=pattern_period,
+                                timeframe=pattern_timeframe,
+                                exchange=exchange,
+                                data_source="smart_fallback",
+                                context="pattern",
+                            )
                         logging.debug(f"DEBUG: natural_language_query() - OHLCV data fetched for patterns, ticker: {ticker_symbol}, dataframe shape: {ohlcv_df.shape}")
 
                         if ohlcv_df.empty:
@@ -977,13 +909,9 @@ def natural_language_query():
                             failed_tickers.append(ticker_symbol)
                             continue
 
-                        # Initialize pattern detector
-                        logging.debug(f"DEBUG: natural_language_query() - Initializing PatternDetector for {ticker_symbol}")
-                        detector = PatternDetector()
-
-                        # Analyze patterns using full history for trend context
+                        # Analyze patterns using shared detector service
                         logging.debug(f"DEBUG: natural_language_query() - Starting pattern analysis for {ticker_symbol}")
-                        detected_patterns = detector.detect_all_patterns(ohlcv_df)
+                        detected_patterns = pattern_service.detect_patterns(ohlcv_df, pattern)
 
                         ticker_pattern_results = []
                         if detected_patterns:

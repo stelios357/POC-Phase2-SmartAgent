@@ -11,12 +11,11 @@ import traceback
 import logging
 import calendar
 
-from config.settings import API_CONFIG
+from config.settings import API_CONFIG, DATA_SOURCE_CONFIG
 from .kaggle_data_fetcher import kaggle_data_fetcher
-from config.settings import VALIDATION_CONFIG, TICKER_CONFIG, VALIDATION_CONFIG, TICKER_CONFIG
+from config.settings import VALIDATION_CONFIG, TICKER_CONFIG
 from src.logging_config import log_api_call, log_cache_operation, log_performance_metric
 from src.cache_manager import cache_manager
-from src.data_fetcher import DataFetcherError
 
 class YFinanceError(Exception):
     """Base exception for yfinance operations"""
@@ -37,6 +36,30 @@ class NetworkError(YFinanceError):
 class DataValidationError(YFinanceError):
     """Raised when data validation fails"""
     pass
+
+class DataFetcherError(YFinanceError):
+    """Raised when data source selection or fetch fails"""
+    pass
+
+
+def _determine_smart_data_source(timeframe: str, context: str = "historical") -> str:
+    """
+    Decide which data source to use based on context and freshness rules.
+    Mirrors the prior smart-fallback logic without depending on data_fetcher.
+    """
+    config = DATA_SOURCE_CONFIG["smart_fallback"]
+
+    if context == "backtest":
+        return config["backtest_priority"]
+
+    if context == "pattern":
+        return config["pattern_analysis_priority"]
+
+    if context == "latest":
+        return config["current_data_priority"]
+
+    # Historical defaults to Kaggle when allowed
+    return config["historical_data_priority"]
 
 def validate_candle_data(row) -> bool:
     """Validate OHLC candle data for consistency"""
@@ -329,11 +352,9 @@ def get_stock_history(ticker: str, period: str = None, start_date: str = None,
         data_source: Data source ("yfinance", "kaggle", "smart_fallback", or None for default)
         context: Request context for smart routing ("historical", "pattern", "backtest")
     """
-    from .data_fetcher import data_fetcher
-
     # Apply smart fallback logic if requested
     if data_source == "smart_fallback":
-        data_source = data_fetcher._determine_smart_data_source(ticker, timeframe or "1d", context)
+        data_source = _determine_smart_data_source(timeframe or "1d", context)
 
     # Route to appropriate data source
     if data_source == "kaggle":
@@ -391,11 +412,22 @@ def get_stock_history(ticker: str, period: str = None, start_date: str = None,
             "timeout": API_CONFIG["timeout"],
         }
 
+        # yfinance treats end as exclusive; extend single-day requests by one day
+        fetch_start_date = start_date
+        fetch_end_date = end_date
+        single_day_range = None
+        if start_date and end_date and start_date == end_date:
+            try:
+                fetch_end_date = (datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+                single_day_range = (pd.to_datetime(start_date), pd.to_datetime(fetch_end_date))
+            except Exception:
+                pass
+
         # yfinance allows maximum 2 of: period, start, end
         # Priority: start/end take precedence over period when both are provided
-        if start_date and end_date:
-            history_kwargs["start"] = start_date
-            history_kwargs["end"] = end_date
+        if fetch_start_date and fetch_end_date:
+            history_kwargs["start"] = fetch_start_date
+            history_kwargs["end"] = fetch_end_date
         elif period:
             history_kwargs["period"] = period
 
@@ -403,6 +435,17 @@ def get_stock_history(ticker: str, period: str = None, start_date: str = None,
             history_kwargs["interval"] = interval
 
         df = stock.history(**history_kwargs)
+
+        # For single-day requests, filter back to the original day after extending end
+        if single_day_range is not None:
+            start_dt, end_dt = single_day_range
+            # Ensure timezone consistency for comparison
+            if df.index.tz is not None:
+                # If index is timezone-aware, make comparison datetimes timezone-aware
+                start_dt = start_dt.tz_localize(df.index.tz) if start_dt.tz is None else start_dt
+                end_dt = end_dt.tz_localize(df.index.tz) if end_dt.tz is None else end_dt
+            df = df[(df.index >= start_dt) & (df.index < end_dt)]
+
         return validate_data(df, normalized_ticker)
 
     df = retry_with_backoff(lambda: safe_yfinance_call("get_history", ticker, _fetch_history, exchange))
@@ -529,11 +572,9 @@ def get_latest_candle(ticker: str, exchange: str = 'nse', data_source: str = Non
             "change_percent": 1.00      # Price change percentage
         }
     """
-    from .data_fetcher import data_fetcher
-
     # Apply smart fallback logic if requested
     if data_source == "smart_fallback":
-        data_source = data_fetcher._determine_smart_data_source(ticker, "1d", context)
+        data_source = _determine_smart_data_source("1d", context)
 
     # Route to appropriate data source
     if data_source == "kaggle":
