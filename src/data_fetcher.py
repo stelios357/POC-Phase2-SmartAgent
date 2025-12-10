@@ -146,8 +146,8 @@ def safe_yfinance_call(operation_name: str, ticker: str, call_func, *args, **kwa
         error_type = type(e).__name__
         error_message = str(e).lower()
 
-        if ("No data found" in error_message or "not found" in error_message or
-            "delisted" in error_message or "No data returned" in error_message):
+        if ("no data found" in error_message or "not found" in error_message or
+            "delisted" in error_message or "no data returned" in error_message):
             error = InvalidTickerError(f"Ticker {ticker} not found")
             logging.debug("DEBUG: safe_yfinance_call() - Categorized as InvalidTickerError")
         elif "timeout" in error_message or "connection" in error_message:
@@ -322,16 +322,20 @@ class DataFetcher:
         ticker = ticker.upper().strip()
         logging.debug(f"DEBUG: DataFetcher.validate_ticker() - After upper/strip: '{ticker}'")
 
-        # Basic validation - alphanumeric and common special chars
-        if not re.match(r'^[A-Z0-9.-]+(?:\.NS|\.BO)?$', ticker):
+        # Allow indices (caret), Indian suffixes, and global tickers without forcing .NS
+        if ticker.startswith("^"):
+            logging.debug("DEBUG: DataFetcher.validate_ticker() - Index symbol detected, skipping suffix normalization")
+            return ticker
+
+        # Basic validation - alphanumeric with optional dots/dashes and common suffixes
+        if not re.match(r'^[A-Z0-9.-]+(?:\.[A-Z]{2,4})?$', ticker):
             logging.debug(f"DEBUG: DataFetcher.validate_ticker() - Regex validation failed for: '{ticker}'")
-            # If no exchange suffix, add .NS for Indian context
-            if '.' not in ticker:
-                ticker = f"{ticker}.NS"
-                logging.debug(f"DEBUG: DataFetcher.validate_ticker() - Added .NS suffix: '{ticker}'")
-            else:
-                logging.debug(f"DEBUG: DataFetcher.validate_ticker() - Invalid format with dot, raising error: '{ticker}'")
-                raise InvalidTickerError(f"Invalid ticker format: {ticker}")
+            raise InvalidTickerError(f"Invalid ticker format: {ticker}")
+
+        # Add Indian suffix only if none is present
+        if '.' not in ticker:
+            ticker = f"{ticker}.NS"
+            logging.debug(f"DEBUG: DataFetcher.validate_ticker() - Added .NS suffix: '{ticker}'")
 
         logging.debug(f"DEBUG: DataFetcher.validate_ticker() - Validation successful, returning: '{ticker}'")
         return ticker

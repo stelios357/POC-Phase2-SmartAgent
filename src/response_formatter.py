@@ -115,14 +115,19 @@ class ResponseFormatter:
             "change_percent": 1.00
         }
         """
+        change_pct_val = candle.get('change_percent')
+        change_val = candle.get('change')
+        volume_val = candle.get('volume', 0)
+
         formatted = {
             "date": candle.get('timestamp', datetime.utcnow().strftime('%Y-%m-%d')),
             "open": round(float(candle.get('open', 0)), 2),
             "high": round(float(candle.get('high', 0)), 2),
             "low": round(float(candle.get('low', 0)), 2),
             "close": round(float(candle.get('close', 0)), 2),
-            "volume": int(candle.get('volume', 0)),
-            "change_pct": round(float(candle.get('change_percent', 0)), 2),
+            "volume": int(volume_val) if volume_val is not None else 0,
+            "change_pct": round(float(change_pct_val), 2) if change_pct_val is not None else 0.0,
+            "change": round(float(change_val), 2) if change_val is not None else 0.0,
             "previous_close": round(float(candle.get('previous_close', 0)), 2),
             "price_range": round(float(candle.get('high', 0)) - float(candle.get('low', 0)), 2),
             "body_size": round(abs(float(candle.get('close', 0)) - float(candle.get('open', 0))), 2)
@@ -257,7 +262,7 @@ class ResponseFormatter:
             return "Exercise caution - market indecision suggests waiting for trend confirmation"
         elif pattern_name == 'hammer':
             return "Potential bullish reversal - consider entry on confirmation of uptrend"
-        elif pattern_name == 'shooting star':
+        elif pattern_name in ('shooting star', 'shooting_star'):
             return "Potential bearish reversal - consider short on confirmation of downtrend"
         elif pattern_name == 'marubozu':
             pattern_type = best_pattern.get('type', '').lower()

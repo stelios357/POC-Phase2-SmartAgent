@@ -248,7 +248,9 @@ def parse_query(query: str,
                 # We need to handle special chars in name lookup if needed, but for now exact match
                 if f" {name} " in f" {query_upper} ": # simplistic word boundary check
                      logging.debug(f"DEBUG: parse_query() - Found common name '{name}' -> '{ticker}'")
-                     extracted["ticker"] = ticker.split('.')[0] # Use the symbol part, validation will handle suffix
+                     symbol_only = ticker.split('.')[0]
+                     extracted["ticker"] = symbol_only  # Backward compatibility
+                     extracted["tickers"] = [symbol_only]
                      break
 
         # Step 4.5: Normalize tickers for yfinance compatibility with exchange context
