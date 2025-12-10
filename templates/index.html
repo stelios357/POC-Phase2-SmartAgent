@@ -1,0 +1,2344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextSteps - Advanced Stock Analysis Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --background-primary: #ffffff;
+            --background-secondary: #f8fafc;
+            --background-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --border-radius-sm: 0.375rem;
+            --border-radius-md: 0.5rem;
+            --border-radius-lg: 0.75rem;
+            --border-radius-xl: 1rem;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+            background: var(--background-tertiary);
+        }
+
+        .nav-link.active {
+            color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        /* Card Components */
+        .card {
+            background: var(--background-primary);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--background-tertiary);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: var(--background-primary);
+            color: var(--text-primary);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .input-group .form-input {
+            flex: 1;
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--background-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Status Messages */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: var(--border-radius-md);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .alert-info {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        /* Data Display */
+        .data-card {
+            background: var(--background-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .data-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .metric {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        .positive {
+            color: var(--success-color);
+        }
+
+        .negative {
+            color: var(--error-color);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .data-table th {
+            font-weight: 600;
+            color: var(--text-primary);
+            background: var(--background-tertiary);
+        }
+
+        .data-table tr:hover {
+            background: var(--background-tertiary);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin: 1.5rem 0;
+            background: var(--background-primary);
+            border-radius: var(--border-radius-lg);
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Query Loading */
+        .query-loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .query-loading-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--background-primary);
+            border-radius: var(--border-radius-xl);
+            padding: 3rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .query-loading-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .query-progress-container {
+            margin: 2rem 0;
+        }
+
+        .query-progress-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .query-progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--background-tertiary);
+            border-radius: 2px;
+            z-index: 1;
+        }
+
+        .query-progress-bar {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+            z-index: 2;
+            transition: width 0.5s ease;
+        }
+
+        .query-step {
+            background: var(--background-tertiary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 3;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+        }
+
+        .query-step.active {
+            background: var(--primary-color);
+            color: white;
+            animation: pulse 1s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .query-step.completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .query-step-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+        }
+
+        .query-step-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            width: 80px;
+        }
+
+        .query-status-text {
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin: 1.5rem 0;
+            min-height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .query-typing-text {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: var(--background-tertiary);
+            padding: 1rem 1.25rem;
+            border-radius: var(--border-radius-md);
+            /* Make the text box comfortably wide */
+            display: block;
+            margin: 1rem auto;
+            width: 100%;
+            max-width: 480px;
+            text-align: left;
+            border-left: 3px solid var(--primary-color);
+            animation: slideIn 0.5s ease;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            white-space: normal;
+        }
+
+        .query-dots {
+            display: inline-flex;
+            gap: 0.25rem;
+        }
+
+        .query-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            animation: wave 1.4s infinite ease-in-out both;
+        }
+
+        .query-dot:nth-child(1) { animation-delay: -0.32s; }
+        .query-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes wave {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .header-content {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .card-body {
+                padding: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .query-loading-content {
+                padding: 2rem 1.5rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mt-0 { margin-top: 0; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Modern Header -->
+        <header class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <span>NextSteps</span>
+                    </div>
+                    <div id="apiStatus" class="alert alert-info" style="padding: 0.5rem 1rem; margin: 0; display: none;">
+                        <i class="fas fa-plug"></i>
+                        <span id="apiStatusText">Checking API connection...</span>
+                    </div>
+                <nav class="nav-links">
+                    <a href="#query" class="nav-link active" onclick="scrollToSection('query-section')">
+                        <i class="fas fa-brain"></i> AI Query
+                    </a>
+                    <a href="#single" class="nav-link" onclick="scrollToSection('single-stock-section')">
+                        <i class="fas fa-search"></i> Single Stock
+                    </a>
+                    <a href="#batch" class="nav-link" onclick="scrollToSection('batch-section')">
+                        <i class="fas fa-layer-group"></i> Batch Analysis
+                    </a>
+                    <a href="#cache" class="nav-link" onclick="scrollToSection('cache-section')">
+                        <i class="fas fa-database"></i> Cache
+                    </a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Natural Language Query Section -->
+            <section id="query-section" class="mb-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-robot"></i>
+                            AI-Powered Stock Analysis
+                        </h2>
+                        <p class="text-muted mt-1">Ask intelligent questions about stock data and technical patterns in plain English</p>
+                    </div>
+                    <div class="card-body">
+        <div class="form-group">
+                            <label class="form-label" for="naturalQuery">
+                                <i class="fas fa-comment-dots"></i> Enter your query
+                            </label>
+                            <div class="input-group">
+                                <input type="text" id="naturalQuery" class="form-input"
+                   placeholder="e.g., 'Is there a Doji on the daily chart of INFY?', 'Show me TCS price', 'Check for hammer pattern on RELIANCE 5m'">
+                                <select id="queryExchange" class="form-input form-select" style="max-width: 150px;">
+                                    <option value="nse">🇮🇳 NSE (.NS)</option>
+                                    <option value="bse">🇮🇳 BSE (.BO)</option>
+                                    <option value="non-india">🌍 Non-India</option>
+            </select>
+                                <button onclick="submitNaturalQuery()" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Ask AI
+                                </button>
+        </div>
+                        </div>
+
+                        <div class="alert alert-primary" style="margin-bottom: 1rem;">
+                            <i class="fas fa-cogs"></i>
+                            <div>
+                                <strong>What We Support:</strong>
+                                <div style="margin-top: 0.5rem; font-size: 0.875rem; line-height: 1.6;">
+                                    <div style="margin-bottom: 0.5rem;"><strong>📊 Data Types:</strong> OHLCV (Open, High, Low, Close, Volume) from real-time and historical sources</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>📈 Candlestick Patterns:</strong> Doji (Common, Dragonfly, Gravestone, Long-Legged), Hammer, Shooting Star, Marubozu</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>⏱️ Timeframes:</strong> 1m, 5m, 15m, 30m, 1h, 1d, 1w, 1mo (minute to monthly)</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>📊 Multi-Stock Analysis:</strong> Compare multiple stocks in single queries</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>🎯 Trend Context:</strong> Pattern significance based on uptrend/downtrend analysis</div>
+                                    <div style="margin-bottom: 0.5rem;"><strong>🔍 Multi-Intent Queries:</strong> Combine price data and pattern analysis</div>
+                                    <div><strong>🎪 Confidence Scoring:</strong> Detailed confidence scores and pattern metrics</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb"></i>
+                            <div>
+                                <strong>Example queries:</strong>
+                                <div style="margin-top: 0.5rem; font-size: 0.875rem;">
+                • "Show me current prices and check for doji patterns in TCS and INFY on daily chart"<br>
+                • "Analyze RELIANCE for hammer patterns in downtrend on 15-minute timeframe"<br>
+                • "Compare HDFCBANK, ICICIBANK, and KOTAKBANK: prices and shooting star patterns on hourly charts"<br>
+                • "Find all candlestick patterns with trend context for TCS on multiple timeframes (1h, 1d, 1w)"<br>
+                • "Get OHLCV data and detect marubozu formations for INFY across different timeframes: 5m, 15m, 1h"<br>
+                • "Analyze long-term patterns and trends for TCS on monthly charts over the past two years"<br>
+                • "TCS price on 21st November 2025" (get historical OHLCV data for specific date)<br>
+                • "Pattern for INFY on 21st Nov 2025 15m data" (analyze patterns for specific date and timeframe)<br>
+                • "Check RELIANCE data for November 15 2024" (historical price analysis)<br>
+                • "Doji patterns in TCS on 15/11/2025" (pattern detection on historical data)
+                                </div>
+                            </div>
+        </div>
+
+                        <!-- Enhanced Query Loading Modal -->
+        <div id="queryLoading" class="query-loading">
+                            <div class="query-loading-content">
+            <div class="query-loading-header">
+                                    <i class="fas fa-brain"></i>
+                <span>AI Stock Analyst</span>
+                                    <i class="fas fa-chart-line"></i>
+            </div>
+
+            <div class="query-progress-container">
+                <div class="query-progress-steps">
+                    <div class="query-progress-bar" id="queryProgressBar"></div>
+                    <div class="query-step" id="step1">1</div>
+                    <div class="query-step" id="step2">2</div>
+                    <div class="query-step" id="step3">3</div>
+                    <div class="query-step" id="step4">4</div>
+                    <div class="query-step" id="step5">5</div>
+                </div>
+                <div class="query-step-labels">
+                    <div class="query-step-label">Parsing Query</div>
+                    <div class="query-step-label">Searching Data</div>
+                    <div class="query-step-label">Analyzing Patterns</div>
+                    <div class="query-step-label">Processing Results</div>
+                    <div class="query-step-label">Finalizing</div>
+                </div>
+            </div>
+
+            <div id="queryStatusText" class="query-status-text">
+                Initializing AI analysis<span class="query-dots"><span class="query-dot"></span><span class="query-dot"></span><span class="query-dot"></span></span>
+            </div>
+
+            <div id="queryTypingText" class="query-typing-text" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="queryResult"></div>
+    </div>
+                </div>
+            </section>
+
+            <!-- Main Dashboard Grid -->
+            <div class="grid grid-2">
+                <!-- Single Stock Analysis -->
+                <section id="single-stock-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i class="fas fa-chart-bar"></i>
+                                Single Stock Analysis
+                            </h2>
+                        </div>
+                        <div class="card-body">
+        <div class="form-group">
+                                <label class="form-label" for="ticker">
+                                    <i class="fas fa-search"></i> Ticker Symbol
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="ticker" class="form-input" placeholder="e.g., AAPL, GOOGL, MSFT" value="AAPL">
+                                    <select id="exchange" class="form-input form-select" style="max-width: 120px;">
+                                        <option value="nse">NSE</option>
+                                        <option value="bse">BSE</option>
+                                        <option value="non-india">Global</option>
+            </select>
+                                </div>
+        </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+                                <button onclick="fetchStock()" class="btn btn-primary">
+                                    <i class="fas fa-history"></i> Historical Data
+                                </button>
+                                <button onclick="fetchLatestCandle()" class="btn btn-secondary">
+                                    <i class="fas fa-candle-holder"></i> Latest Candle
+                                </button>
+                                <button onclick="fetchCurrentPrice()" class="btn btn-success">
+                                    <i class="fas fa-dollar-sign"></i> Current Price
+                                </button>
+                            </div>
+
+                            <div id="loading" class="loading" style="display: none;">
+                                <div class="spinner"></div>
+                                <span>Loading stock data...</span>
+                            </div>
+        <div id="result"></div>
+                            <div class="chart-container">
+                                <canvas id="stockChart"></canvas>
+    </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Batch Analysis -->
+                <section id="batch-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i class="fas fa-layer-group"></i>
+                                Batch Stock Analysis
+                            </h2>
+        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label" for="batchTickers">
+                                    <i class="fas fa-list"></i> Ticker Symbols (comma-separated)
+                                </label>
+                                <input type="text" id="batchTickers" class="form-input"
+                                       placeholder="e.g., AAPL,GOOGL,MSFT,TSLA" value="AAPL,GOOGL">
+    </div>
+
+                            <button onclick="fetchBatchStocks()" class="btn btn-primary" style="width: 100%;">
+                                <i class="fas fa-rocket"></i> Analyze Multiple Stocks
+                            </button>
+
+                            <div id="batchResult" class="mt-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Cache Management -->
+                    <div class="card" id="cache-section" style="margin-top: 2rem;">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <i class="fas fa-database"></i>
+                                Cache Management
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem;">
+                                <button onclick="getCacheStats()" class="btn btn-secondary">
+                                    <i class="fas fa-sync"></i> Refresh Stats
+                                </button>
+                                <button onclick="clearCache()" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Clear Cache
+                                </button>
+                            </div>
+                            <div id="cacheStats" class="mt-3"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+        <script>
+        let stockChart = null;
+
+        // Smooth scrolling to sections
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            const currentLink = document.querySelector(`[onclick*="scrollToSection('${sectionId}')"]`);
+            if (currentLink) currentLink.classList.add('active');
+        }
+
+        // Helper function to determine currency symbol based on ticker
+        function getCurrencySymbol(ticker) {
+            const upperTicker = ticker.toUpperCase();
+            // Both NSE (.NS) and BSE (.BO) should show ₹, others show $
+            // Also check for Indian indices like ^NSEI, ^NSEBANK, etc.
+            const isIndianStock = upperTicker.endsWith('.NS') || upperTicker.endsWith('.BO');
+            const isIndianIndex = upperTicker.startsWith('^') && (
+                upperTicker.includes('NSEI') ||
+                upperTicker.includes('NSEBANK') ||
+                upperTicker.includes('BANKNIFTY') ||
+                upperTicker.includes('NIFTY') ||
+                upperTicker.includes('BSE')
+            );
+            return (isIndianStock || isIndianIndex) ? '₹' : '$';
+        }
+
+        // API base URL - using full URL to work when HTML is opened directly from file system
+        const API_BASE_URL = 'http://localhost:5001';
+
+        // Test API connectivity on page load
+        window.addEventListener('load', async function() {
+            const statusDiv = document.getElementById('apiStatus');
+            const statusText = document.getElementById('apiStatusText');
+            statusDiv.style.display = 'flex';
+
+            console.log('Testing API connectivity...');
+            try {
+                statusText.textContent = 'Testing API connection...';
+                const response = await fetch(`${API_BASE_URL}/api/cache/stats`);
+                const data = await response.json();
+                console.log('API connectivity test successful:', data.success);
+
+                statusDiv.className = 'alert alert-success';
+                statusText.innerHTML = '<i class="fas fa-check-circle"></i> API Connected';
+                setTimeout(() => statusDiv.style.display = 'none', 3000);
+            } catch (error) {
+                console.error('API connectivity test failed:', error);
+                statusDiv.className = 'alert alert-error';
+                statusText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> API Connection Failed - Check server on port 5001';
+            }
+        });
+
+        async function fetchStock() {
+            const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+            const exchange = document.getElementById('exchange').value;
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stock/${ticker}?exchange=${exchange}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayStockData(data.data, ticker, data.source);
+                    showSuccess(`Historical data loaded from ${data.source}`);
+                } else {
+                    showError(data.message || 'Failed to fetch stock data');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Fetch error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        async function fetchLatestCandle() {
+            const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+            const exchange = document.getElementById('exchange').value;
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stock/${ticker}/latest?exchange=${exchange}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayLatestCandle(data.data, ticker);
+                    showSuccess('Latest candle data loaded');
+                } else {
+                    showError(data.message || 'Failed to fetch latest candle');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Fetch error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        async function fetchCurrentPrice() {
+            const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+            const exchange = document.getElementById('exchange').value;
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stock/${ticker}/price?exchange=${exchange}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayCurrentPrice(data.data, ticker);
+                    showSuccess('Current price loaded');
+                } else {
+                    showError(data.message || 'Failed to fetch current price');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Fetch error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        async function fetchBatchStocks() {
+            const tickersInput = document.getElementById('batchTickers').value.trim();
+            const exchange = document.getElementById('exchange').value;
+            if (!tickersInput) {
+                showError('Please enter ticker symbols');
+                return;
+            }
+
+            const tickers = tickersInput.split(',').map(t => t.trim().toUpperCase()).filter(t => t);
+
+            if (tickers.length === 0) {
+                showError('Please enter valid ticker symbols');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stocks/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tickers: tickers, exchange: exchange })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayBatchResults(data.data);
+                    showSuccess(`Loaded ${data.count} stocks successfully`);
+                } else {
+                    showError(data.message || 'Failed to fetch batch data');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Batch fetch error:', error);
+            }
+
+            showLoading(false);
+        }
+
+        async function getCacheStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/cache/stats`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayCacheStats(data.data);
+                } else {
+                    showError('Failed to get cache statistics');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Cache stats error:', error);
+            }
+        }
+
+        async function clearCache() {
+            if (!confirm('Are you sure you want to clear all cached data?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/cache/clear`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(data.message);
+                    getCacheStats(); // Refresh stats
+                } else {
+                    showError('Failed to clear cache');
+                }
+            } catch (error) {
+                showError('Network error occurred');
+                console.error('Clear cache error:', error);
+            }
+        }
+
+        async function submitNaturalQuery() {
+            const query = document.getElementById('naturalQuery').value.trim();
+            const exchange = document.getElementById('queryExchange').value;
+            if (!query) {
+                showQueryError('Please enter a query');
+                return;
+            }
+
+            // Show creative query loading screen
+            showQueryLoading(true);
+            startQueryProgressAnimation(query);
+            clearQueryResults();
+
+            try {
+                console.log('Making API request to:', `${API_BASE_URL}/api/query`);
+                console.log('Request body:', { query: query, exchange: exchange });
+
+                const response = await fetch(`${API_BASE_URL}/api/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query, exchange: exchange })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                // Complete the loading animation
+                completeQueryProgress();
+
+                if (data.success) {
+                    displayNaturalQueryResult(data);
+                    showQuerySuccess(data.message);
+                } else {
+                    showQueryError(data.message || 'Query failed');
+                    if (data.parsed_query) {
+                        displayParsedQuery(data.parsed_query);
+                    }
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        displaySuggestions(data.suggestions);
+                    }
+                }
+            } catch (error) {
+                completeQueryProgress();
+                console.error('Natural query error:', error);
+
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    showQueryError('Cannot connect to server. Make sure Flask is running on port 5001.');
+                } else if (error.message.includes('CORS')) {
+                    showQueryError('CORS error. Try accessing via http://localhost:5001 instead of file://');
+                } else {
+                    showQueryError('Network error occurred. Check browser console for details.');
+                }
+            }
+
+            // Hide loading after a brief delay to show completion
+            setTimeout(() => showQueryLoading(false), 800);
+        }
+
+        function displayNaturalQueryResult(data) {
+            const resultDiv = document.getElementById('queryResult');
+
+            let html = `
+                <div class="data-card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-check-circle"></i>
+                        Query Results
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="metric">
+                            <span class="metric-value">${(data.parsed.confidence * 100).toFixed(1)}%</span>
+                            <span class="metric-label">Confidence</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${data.action.replace('_', ' ')}</span>
+                            <span class="metric-label">Action Type</span>
+                        </div>
+                    </div>
+                    <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                        <p style="margin-bottom: 0.5rem;"><strong>📝 Query:</strong> "${data.query}"</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>🎯 Parsed:</strong> ${Array.isArray(data.parsed.tickers) ? data.parsed.tickers.join(', ') : (data.parsed.ticker || 'N/A')} | ${data.parsed.timeframe} | ${data.parsed.query_type} | ${data.parsed.pattern || 'N/A'}</p>
+                    </div>
+            `;
+
+            // Handle multi-intent queries (multiple stocks with both OHLCV and patterns)
+            if (data.action === 'multi_intent' && data.ohlcv_summary && data.pattern_data) {
+                const tickers = Object.keys(data.ohlcv_summary).filter(ticker =>
+                    ticker !== 'stock_summaries' && data.ohlcv_summary[ticker] && typeof data.ohlcv_summary[ticker] === 'object'
+                );
+
+                if (tickers.length > 0) {
+                    html += `
+                        <div class="data-card" style="margin-top: 1.5rem;">
+                            <h4 style="color: var(--primary-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-chart-line"></i>
+                                Multi-Stock Analysis Results
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                    `;
+
+                    tickers.forEach(ticker => {
+                        const ohlcvSummary = data.ohlcv_summary[ticker];
+                        const patterns = data.pattern_data.pattern_analysis[ticker] || [];
+                        const latestCandle = data.pattern_data.latest_candles[ticker];
+
+                        const currency = getCurrencySymbol(ticker);
+                        const changeClass = ohlcvSummary.change_percent >= 0 ? 'positive' : 'negative';
+                        const changeSymbol = ohlcvSummary.change_percent >= 0 ? '↗' : '↘';
+
+                        html += `
+                            <div class="card" style="margin: 0;">
+                                <div class="card-header">
+                                    <h5 class="card-title" style="margin: 0;">
+                                        <i class="fas fa-chart-bar"></i>
+                                        ${ticker}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Price Information -->
+                                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                                        <div class="metric" style="margin-bottom: 0;">
+                                            <span class="metric-value ${changeClass}" style="font-size: 2rem;">${currency}${ohlcvSummary.close.toFixed(2)}</span>
+                                            <span class="metric-label">Current Price</span>
+                                        </div>
+                                        <div style="${changeClass}; font-size: 1.1rem; font-weight: 600; margin-top: 0.5rem;">
+                                            ${changeSymbol} ${currency}${ohlcvSummary.change?.toFixed(2) || '0.00'} (${ohlcvSummary.change_percent !== null && ohlcvSummary.change_percent !== undefined ? ohlcvSummary.change_percent.toFixed(2) + '%' : 'N/A'})
+                                        </div>
+                                    </div>
+
+                                    <!-- OHLC Data -->
+                                    <div style="margin-bottom: 1.5rem;">
+                                        <h6 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                                            <i class="fas fa-candle-holder"></i> Latest Candle
+                                        </h6>
+                                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.85rem;">
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Open</div>
+                                                <div style="font-weight: 600; color: var(--text-primary);">${currency}${ohlcvSummary.open.toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">High</div>
+                                                <div style="font-weight: 600; color: var(--success-color);">${currency}${ohlcvSummary.high.toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Low</div>
+                                                <div style="font-weight: 600; color: var(--error-color);">${currency}${ohlcvSummary.low.toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Volume</div>
+                                                <div style="font-weight: 600; color: var(--text-primary);">${ohlcvSummary.volume.toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pattern Analysis -->
+                                    <div>
+                                        <h6 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                                            <i class="fas fa-search"></i> Patterns Found (${patterns.length})
+                                        </h6>
+                        `;
+
+                        if (patterns.length > 0) {
+                            patterns.slice(0, 2).forEach(pattern => {
+                                const signalValue = pattern.signal || 'neutral';
+                                const signalClass = signalValue.toLowerCase().includes('bullish')
+                                    ? 'positive'
+                                    : signalValue.toLowerCase().includes('bearish')
+                                        ? 'negative'
+                                        : '';
+                                const signalIcon = signalValue.toLowerCase().includes('bullish')
+                                    ? '↗'
+                                    : signalValue.toLowerCase().includes('bearish')
+                                        ? '↘'
+                                        : '→';
+
+                                html += `
+                                    <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 0.5rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <strong style="color: var(--text-primary); font-size: 0.85rem;">${pattern.pattern}</strong>
+                                                <small style="color: var(--text-secondary); margin-left: 0.25rem;">${pattern.type}</small>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div class="${signalClass}" style="font-weight: 600; font-size: 0.8rem;">${signalIcon} ${pattern.signal}</div>
+                                                <small style="color: var(--text-muted); font-size: 0.7rem;">${(pattern.confidence * 100).toFixed(1)}%</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                            if (patterns.length > 2) {
+                                html += `<div style="text-align: center; color: var(--text-muted); font-style: italic; font-size: 0.8rem;">... and ${patterns.length - 2} more patterns</div>`;
+                            }
+                        } else {
+                            html += `<div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-sm); text-align: center; color: var(--text-secondary); font-style: italic;">No patterns detected</div>`;
+                        }
+
+                        html += `
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (data.action === 'multi_intent' && data.current_price_data && data.pattern_data) {
+                // Multi-intent: current price + pattern detection (no separate OHLCV summary)
+                const tickers = Object.keys(data.current_price_data);
+
+                if (tickers.length > 0) {
+                    html += `
+                        <div class="data-card" style="margin-top: 1.5rem;">
+                            <h4 style="color: var(--primary-color); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-chart-line"></i>
+                                Multi-Stock Analysis Results
+                            </h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
+                    `;
+
+                    tickers.forEach(ticker => {
+                        const priceInfo = data.current_price_data[ticker];
+                        const patterns = (data.pattern_data.pattern_analysis && data.pattern_data.pattern_analysis[ticker]) || [];
+                        const latestCandle = data.pattern_data.latest_candles ? data.pattern_data.latest_candles[ticker] : null;
+
+                        const currency = getCurrencySymbol(ticker);
+                        const price = priceInfo && typeof priceInfo.price === 'number' ? priceInfo.price : 0;
+                        const change = priceInfo && typeof priceInfo.day_change === 'number' ? priceInfo.day_change : 0;
+                        const changePercent = priceInfo && typeof priceInfo.day_change_percent === 'number' ? priceInfo.day_change_percent : 0;
+                        const changeClass = changePercent >= 0 ? 'positive' : 'negative';
+                        const changeSymbol = changePercent >= 0 ? '↗' : '↘';
+
+                        html += `
+                            <div class="card" style="margin: 0;">
+                                <div class="card-header">
+                                    <h5 class="card-title" style="margin: 0;">
+                                        <i class="fas fa-chart-bar"></i>
+                                        ${ticker}
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Price Information -->
+                                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                                        <div class="metric" style="margin-bottom: 0;">
+                                            <span class="metric-value ${changeClass}" style="font-size: 2rem;">${currency}${price.toFixed(2)}</span>
+                                            <span class="metric-label">Current Price</span>
+                                        </div>
+                                        <div class="${changeClass}" style="font-size: 1.1rem; font-weight: 600; margin-top: 0.5rem;">
+                                            ${changeSymbol} ${currency}${Math.abs(change).toFixed(2)} (${Math.abs(changePercent).toFixed(2)}%)
+                                        </div>
+                                    </div>
+
+                                    <!-- Latest Candle (from pattern analysis data, if available) -->
+                                    ${latestCandle ? `
+                                    <div style="margin-bottom: 1.5rem;">
+                                        <h6 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                                            <i class="fas fa-candle-holder"></i> Latest Candle
+                                        </h6>
+                                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.85rem;">
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Open</div>
+                                                <div style="font-weight: 600; color: var(--text-primary);">${currency}${(latestCandle.open || 0).toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">High</div>
+                                                <div style="font-weight: 600; color: var(--success-color);">${currency}${(latestCandle.high || 0).toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Low</div>
+                                                <div style="font-weight: 600; color: var(--error-color);">${currency}${(latestCandle.low || 0).toFixed(2)}</div>
+                                            </div>
+                                            <div style="background: var(--background-tertiary); padding: 0.5rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                                <div style="color: var(--text-secondary); font-size: 0.75rem;">Volume</div>
+                                                <div style="font-weight: 600; color: var(--text-primary);">${(latestCandle.volume || 0).toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+
+                                    <!-- Pattern Analysis -->
+                                    <div>
+                                        <h6 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                                            <i class="fas fa-search"></i> Patterns Found (${patterns.length})
+                                        </h6>
+                        `;
+
+                        if (patterns.length > 0) {
+                            patterns.slice(0, 2).forEach(pattern => {
+                                const signalValue = pattern.signal || 'neutral';
+                                const signalClass = signalValue.toLowerCase().includes('bullish')
+                                    ? 'positive'
+                                    : signalValue.toLowerCase().includes('bearish')
+                                        ? 'negative'
+                                        : '';
+                                const signalIcon = signalValue.toLowerCase().includes('bullish')
+                                    ? '↗'
+                                    : signalValue.toLowerCase().includes('bearish')
+                                        ? '↘'
+                                        : '→';
+
+                                html += `
+                                    <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-sm); margin-bottom: 0.5rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <strong style="color: var(--text-primary); font-size: 0.85rem;">${pattern.pattern}</strong>
+                                                <small style="color: var(--text-secondary); margin-left: 0.25rem;">${pattern.type}</small>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div class="${signalClass}" style="font-weight: 600; font-size: 0.8rem;">${signalIcon} ${pattern.signal}</div>
+                                                <small style="color: var(--text-muted); font-size: 0.7rem;">${(pattern.confidence * 100).toFixed(1)}%</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+
+                            if (patterns.length > 2) {
+                                html += `<div style="text-align: center; color: var(--text-muted); font-style: italic; font-size: 0.8rem;">... and ${patterns.length - 2} more patterns</div>`;
+                            }
+                        } else {
+                            html += `<div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-sm); text-align: center; color: var(--text-secondary); font-style: italic;">No patterns detected</div>`;
+                        }
+
+                        html += `
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (data.action === 'current_price' && data.current_price_data) {
+                // Current price action handling
+                const tickers = Object.keys(data.current_price_data);
+                if (tickers.length > 0) {
+                    html += `
+                        <div class="data-card" style="margin-top: 1.5rem;">
+                            <h4 style="color: var(--primary-color); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-dollar-sign"></i>
+                                Current Price Information
+                            </h4>
+                    `;
+
+                    if (data.current_price_data) {
+                        Object.entries(data.current_price_data).forEach(([ticker, priceInfo]) => {
+                            const currency = getCurrencySymbol(ticker);
+                            const price = priceInfo.price || 0;
+                            const change = priceInfo.day_change || 0;
+                            const changePercent = priceInfo.day_change_percent || 0;
+                            const changeClass = changePercent >= 0 ? 'positive' : 'negative';
+                            const changeSymbol = changePercent >= 0 ? '↗' : '↘';
+                            const marketState = priceInfo.market_state || 'UNKNOWN';
+
+                            html += `
+                                <div style="background: var(--background-tertiary); padding: 1.5rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <div>
+                                            <h5 style="margin: 0 0 0.25rem 0; color: var(--text-primary); font-size: 1.1rem;">${ticker}</h5>
+                                            <small style="color: var(--text-secondary);">${priceInfo.exchange || 'NSE'} • ${marketState}</small>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div class="metric-value" style="font-size: 1.75rem; margin-bottom: 0.25rem;">
+                                                ${currency}${price.toFixed(2)}
+                                            </div>
+                                            <div class="${changeClass}" style="font-size: 0.9rem; font-weight: 600;">
+                                                ${changeSymbol} ${currency}${Math.abs(change).toFixed(2)} (${Math.abs(changePercent).toFixed(2)}%)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; font-size: 0.875rem;">
+                                        <div style="background: var(--background-secondary); padding: 0.75rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                            <div style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Previous Close</div>
+                                            <div style="font-weight: 600; color: var(--text-primary);">${currency}${(priceInfo.previous_close || 0).toFixed(2)}</div>
+                                        </div>
+                                        <div style="background: var(--background-secondary); padding: 0.75rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                            <div style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Day High</div>
+                                            <div style="font-weight: 600; color: var(--success-color);">${currency}${(priceInfo.day_high || 0).toFixed(2)}</div>
+                                        </div>
+                                        <div style="background: var(--background-secondary); padding: 0.75rem; border-radius: var(--border-radius-sm); text-align: center;">
+                                            <div style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 0.25rem;">Day Low</div>
+                                            <div style="font-weight: 600; color: var(--error-color);">${currency}${(priceInfo.day_low || 0).toFixed(2)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                        <small style="color: var(--text-secondary);">
+                                            <i class="fas fa-clock"></i> Last updated: ${new Date(priceInfo.timestamp || Date.now()).toLocaleString()}
+                                        </small>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    html += '</div>';
+                }
+            } else if (data.action === 'ohlcv' && data.ohlcv_data) {
+                // Single OHLCV action handling (existing code)
+                const tickers = Object.keys(data.ohlcv_data);
+                if (tickers.length > 0) {
+                    const title = tickers.length > 1 ? 'Stock Comparison (Recent 3 Months)' : 'OHLCV Data Analysis';
+                    const icon = tickers.length > 1 ? 'fas fa-balance-scale' : 'fas fa-chart-line';
+                    html += `
+                        <div class="data-card" style="margin-top: 1.5rem;">
+                            <h4 style="color: var(--primary-color); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="${icon}"></i>
+                                ${title}
+                            </h4>
+                    `;
+
+                    if (data.ohlcv_summary) {
+                        Object.entries(data.ohlcv_summary).forEach(([ticker, summary]) => {
+                            // Skip non-ticker entries like 'stock_summaries'
+                            if (ticker === 'stock_summaries' || !summary || typeof summary !== 'object') {
+                                return;
+                            }
+
+                            // Handle full intraday data display
+                            if (summary.full_intraday_data && data.ohlcv_data && data.ohlcv_data[ticker]) {
+                                const intradayData = data.ohlcv_data[ticker];
+                                const dataPoints = Object.keys(intradayData).length;
+                                const currency = getCurrencySymbol(ticker);
+
+                                html += `
+                                    <div style="background: var(--background-tertiary); padding: 1.5rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                            <h5 style="margin: 0; color: var(--text-primary);">${ticker} - Today's Intraday Data</h5>
+                                            <span class="metric" style="font-size: 0.9rem;">
+                                                <span class="metric-value">${dataPoints}</span>
+                                                <span class="metric-label"> candles</span>
+                                            </span>
+                                        </div>
+
+                                        <div style="background: var(--background-secondary); padding: 1rem; border-radius: var(--border-radius-sm); margin-bottom: 1rem;">
+                                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                                <i class="fas fa-chart-line"></i> ${summary.timeframe} intervals • Latest data available for chart rendering
+                                            </div>
+                                            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                                Full intraday data is available in the ohlcv_data for technical analysis and charting.
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else if (summary.close) {
+                                // Standard OHLCV summary display
+                                const currency = getCurrencySymbol(ticker);
+                                const changeClass = summary.change_percent >= 0 ? 'positive' : 'negative';
+                                const changeSymbol = summary.change_percent >= 0 ? '↗' : '↘';
+
+                                html += `
+                                    <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                            <h5 style="margin: 0; color: var(--text-primary);">${ticker}</h5>
+                                            <span class="metric-value ${changeClass}" style="font-size: 1.25rem;">
+                                                ${currency}${summary.close.toFixed(2)}
+                                                <small class="${changeClass}" style="font-size: 0.75rem; margin-left: 0.5rem;">
+                                                    ${changeSymbol} ${summary.change_percent !== null && summary.change_percent !== undefined ? summary.change_percent.toFixed(2) + '%' : 'N/A'}
+                                                </small>
+                                    </span>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                            <span><strong>O:</strong> ${currency}${summary.open.toFixed(2)}</span>
+                                            <span><strong>H:</strong> ${currency}${summary.high.toFixed(2)}</span>
+                                            <span><strong>L:</strong> ${currency}${summary.low.toFixed(2)}</span>
+                                            <span><strong>V:</strong> ${summary.volume.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+
+                    html += '</div>';
+                }
+            } else if (data.action === 'pattern_detection' && data.pattern_data) {
+                // Single pattern detection action handling (existing code)
+                const patternsFound = data.pattern_data.patterns_found || 0;
+                html += `
+                    <div class="data-card" style="margin-top: 1.5rem;">
+                        <h4 style="color: var(--primary-color); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-search"></i>
+                            Pattern Analysis Results
+                        </h4>
+                        <div class="metric" style="margin-bottom: 1.5rem;">
+                            <span class="metric-value">${patternsFound}</span>
+                            <span class="metric-label">Patterns Detected</span>
+                        </div>
+                `;
+
+                if (patternsFound > 0 && data.pattern_data.pattern_analysis) {
+                    html += '<div style="space-y: 1rem;">';
+                    Object.entries(data.pattern_data.pattern_analysis).forEach(([ticker, patterns]) => {
+                        if (patterns.length > 0) {
+                            html += `
+                                <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                                    <h5 style="margin-bottom: 0.75rem; color: var(--text-primary);">${ticker}</h5>
+                                    <div style="display: grid; gap: 0.5rem;">
+                            `;
+
+                            patterns.slice(0, 3).forEach(pattern => {
+                        const signalValue = pattern.signal || 'neutral';
+                        const signalClass = signalValue.toLowerCase().includes('bullish')
+                            ? 'positive'
+                            : signalValue.toLowerCase().includes('bearish')
+                                ? 'negative'
+                                : '';
+                                const signalIcon = signalValue.toLowerCase().includes('bullish')
+                                    ? '↗'
+                                    : signalValue.toLowerCase().includes('bearish')
+                                        ? '↘'
+                                        : '→';
+
+                        html += `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--background-primary); border-radius: var(--border-radius-sm);">
+                                        <div>
+                                            <strong style="color: var(--text-primary);">${pattern.pattern}</strong>
+                                            <small style="color: var(--text-secondary); margin-left: 0.5rem;">${pattern.type}</small>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div class="${signalClass}" style="font-weight: 600;">${signalIcon} ${pattern.signal}</div>
+                                            <small style="color: var(--text-muted);">${(pattern.confidence * 100).toFixed(1)}% confidence</small>
+                                        </div>
+                                    </div>
+                        `;
+                    });
+
+                            if (patterns.length > 3) {
+                                html += `<div style="text-align: center; color: var(--text-muted); font-style: italic;">... and ${patterns.length - 3} more patterns</div>`;
+                            }
+
+                            html += '</div></div>';
+                        }
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            // Add success message for all cases
+            if (data.message && !data.message.includes('📊') && !data.message.includes('📋')) {
+                html += `
+                    <div class="alert alert-success" style="margin-top: 1rem;">
+                        <i class="fas fa-info-circle"></i>
+                        <span>${data.message}</span>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+
+        function displayParsedQuery(parsed) {
+            const resultDiv = document.getElementById('queryResult');
+            resultDiv.innerHTML += `
+                <div class="stock-info" style="margin-top: 10px;">
+                    <h4>Query Parsing Details:</h4>
+                    <p><strong>Ticker:</strong> ${parsed.ticker_found || 'Not found'}</p>
+                    <p><strong>Timeframe:</strong> ${parsed.timeframe_found || 'Not found'}</p>
+                    <p><strong>Pattern:</strong> ${parsed.pattern_found || 'Not found'}</p>
+                    <p><strong>OHLCV Intent:</strong> ${parsed.explicit_ohlcv ? 'Yes' : 'No'}</p>
+                </div>
+            `;
+        }
+
+        function displaySuggestions(suggestions) {
+            const resultDiv = document.getElementById('queryResult');
+            resultDiv.innerHTML += `
+                <div class="stock-info" style="margin-top: 10px; border-left: 4px solid #ffc107;">
+                    <h4>💡 Suggestions:</h4>
+                    <ul>
+                        ${suggestions.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function clearQueryResults() {
+            document.getElementById('queryResult').innerHTML = '';
+        }
+
+        function showQueryError(message) {
+            const resultDiv = document.getElementById('queryResult');
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showQuerySuccess(message) {
+            const resultDiv = document.getElementById('queryResult');
+            const existingSuccess = resultDiv.querySelector('.success');
+            if (existingSuccess) {
+                existingSuccess.remove();
+            }
+            resultDiv.insertAdjacentHTML('afterbegin', `<div class="success">${message}</div>`);
+        }
+
+        function displayStockData(data, ticker, source) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            if (Object.keys(data).length === 0) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>No data available for this ticker</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get latest data point
+            const dates = Object.keys(data).sort();
+            const latestDate = dates[dates.length - 1];
+            const latestData = data[latestDate];
+            const currency = getCurrencySymbol(ticker);
+
+            resultDiv.innerHTML = `
+                <div class="data-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-chart-line"></i>
+                            ${ticker} Historical Data
+                        </h3>
+                        <span class="alert alert-info" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
+                            <i class="fas fa-database"></i> ${source}
+                        </span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <div class="metric">
+                            <span class="metric-value">${currency}${latestData.Close?.toFixed(2) || 'N/A'}</span>
+                            <span class="metric-label">Latest Close</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${dates.length}</span>
+                            <span class="metric-label">Trading Days</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${latestData.Volume?.toLocaleString() || 'N/A'}</span>
+                            <span class="metric-label">Volume</span>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-md); font-size: 0.875rem; color: var(--text-secondary);">
+                        <i class="fas fa-calendar"></i> Latest trading date: ${latestDate}
+                    </div>
+                </div>
+            `;
+
+            // Create chart
+            createChart(data, ticker);
+        }
+
+        function displayLatestCandle(data, ticker) {
+            const resultDiv = document.getElementById('result');
+            const changeClass = data.change_percent >= 0 ? 'positive' : 'negative';
+            const changeSymbol = data.change_percent >= 0 ? '↗' : '↘';
+            const currency = getCurrencySymbol(ticker);
+
+            resultDiv.innerHTML = `
+                <div class="data-card">
+                    <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-candle-holder"></i>
+                        ${ticker} - Latest Candle Data
+                    </h3>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="metric">
+                            <span class="metric-value">${currency}${data.price}</span>
+                            <span class="metric-label">Current Price</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value ${changeClass}">${changeSymbol} ${data.change_percent?.toFixed(2)}%</span>
+                            <span class="metric-label">Change %</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${currency}${data.change?.toFixed(2)}</span>
+                            <span class="metric-label">Change Amount</span>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.75rem; color: var(--text-primary);">OHLC Data</h4>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.875rem;">
+                            <div style="text-align: center; padding: 0.5rem; background: var(--background-primary); border-radius: var(--border-radius-sm);">
+                                <div style="color: var(--text-secondary);">Open</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${currency}${data.open}</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: var(--background-primary); border-radius: var(--border-radius-sm);">
+                                <div style="color: var(--text-secondary);">High</div>
+                                <div style="font-weight: 600; color: var(--success-color);">${currency}${data.high}</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: var(--background-primary); border-radius: var(--border-radius-sm);">
+                                <div style="color: var(--text-secondary);">Low</div>
+                                <div style="font-weight: 600; color: var(--error-color);">${currency}${data.low}</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background: var(--background-primary); border-radius: var(--border-radius-sm);">
+                                <div style="color: var(--text-secondary);">Close</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${currency}${data.close}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                        <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Volume</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${data.volume?.toLocaleString()}</div>
+                        </div>
+                        <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Market State</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${data.market_state}</div>
+                        </div>
+                        <div style="background: var(--background-tertiary); padding: 0.75rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Data Quality</div>
+                            <div style="font-weight: 600; color: ${data.data_quality === 'high' ? 'var(--success-color)' : 'var(--warning-color)'};">${data.data_quality}</div>
+                        </div>
+                    </div>
+
+                    ${data.validation && data.validation.warnings.length > 0 ?
+                        `<div class="alert alert-warning" style="margin-top: 1rem;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>${data.validation.warnings[0]}</span>
+                        </div>` : ''}
+                </div>
+            `;
+        }
+
+        function displayCurrentPrice(data, ticker) {
+            const resultDiv = document.getElementById('result');
+            const changeClass = data.day_change_percent >= 0 ? 'positive' : 'negative';
+            const changeSymbol = data.day_change_percent >= 0 ? '↗' : '↘';
+            const currency = getCurrencySymbol(ticker);
+
+            resultDiv.innerHTML = `
+                <div class="data-card">
+                    <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-dollar-sign"></i>
+                        ${ticker} - Current Price
+                    </h3>
+
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <div class="metric" style="margin-bottom: 0;">
+                            <span class="metric-value ${changeClass}" style="font-size: 3rem;">${currency}${data.price}</span>
+                            <span class="metric-label">Current Price</span>
+                        </div>
+                        <div style="${changeClass}; font-size: 1.25rem; font-weight: 600; margin-top: 0.5rem;">
+                            ${changeSymbol} ${currency}${data.day_change?.toFixed(2)} (${data.day_change_percent?.toFixed(2)}%)
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Previous Close</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${currency}${data.previous_close}</div>
+                        </div>
+                        <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Day Range</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${currency}${data.day_low} - ${currency}${data.day_high}</div>
+                        </div>
+                        <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Volume</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${data.volume?.toLocaleString()}</div>
+                        </div>
+                        <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.75rem;">Market State</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">${data.market_state}</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+                            <div><strong>Exchange:</strong> ${data.exchange || 'Unknown'}</div>
+                            <div><strong>Timezone:</strong> ${data.timezone}</div>
+                            <div><strong>Market Hours:</strong> ${data.market_hours || 'Unknown'}</div>
+                            <div><strong>Data Quality:</strong>
+                                <span style="color: ${data.data_quality === 'high' ? 'var(--success-color)' : 'var(--warning-color)'};">${data.data_quality}</span>
+                                ${data.validation ? `(${data.validation.confidence_level})` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayBatchResults(data) {
+            const resultDiv = document.getElementById('batchResult');
+            resultDiv.innerHTML = '';
+
+            const tickers = Object.keys(data);
+
+            if (tickers.length === 0) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>No data available</span>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div class="data-card">
+                    <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-layer-group"></i>
+                        Batch Analysis Results (${tickers.length} stocks)
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left;">Ticker</th>
+                                    <th style="text-align: right;">Latest Close</th>
+                                    <th style="text-align: right;">Volume</th>
+                                    <th style="text-align: center;">Trading Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            tickers.forEach(ticker => {
+                const stockData = data[ticker];
+                const dates = Object.keys(stockData).sort();
+                const latestDate = dates[dates.length - 1];
+                const latestData = stockData[latestDate];
+                const currency = getCurrencySymbol(ticker);
+
+                html += `
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-primary);">${ticker}</td>
+                        <td style="text-align: right; font-weight: 600;">${currency}${latestData.Close?.toFixed(2) || 'N/A'}</td>
+                        <td style="text-align: right;">${latestData.Volume?.toLocaleString() || 'N/A'}</td>
+                        <td style="text-align: center; color: var(--text-secondary);">${dates.length}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            resultDiv.innerHTML = html;
+        }
+
+        function displayCacheStats(stats) {
+            const statsDiv = document.getElementById('cacheStats');
+            statsDiv.innerHTML = `
+                <div class="data-card">
+                    <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-database"></i>
+                        Cache Statistics
+                    </h3>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="metric">
+                            <span class="metric-value">${stats.total_entries}</span>
+                            <span class="metric-label">Total Entries</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${stats.expired_entries}</span>
+                            <span class="metric-label">Expired</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-value">${stats.total_size_mb?.toFixed(2) || 0} MB</span>
+                            <span class="metric-label">Total Size</span>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--background-tertiary); padding: 1rem; border-radius: var(--border-radius-md);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+                            <div><strong>Oldest Entry:</strong> ${stats.oldest_entry || 'None'}</div>
+                            <div><strong>Newest Entry:</strong> ${stats.newest_entry || 'None'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createChart(data, ticker) {
+            const ctx = document.getElementById('stockChart').getContext('2d');
+
+            // Destroy existing chart
+            if (stockChart) {
+                stockChart.destroy();
+            }
+
+            const dates = Object.keys(data).sort();
+            const closePrices = dates.map(date => data[date].Close);
+            const volumes = dates.map(date => data[date].Volume);
+
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: `${ticker} Close Price`,
+                        data: closePrices,
+                        borderColor: 'rgb(37, 99, 235)',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        pointBackgroundColor: 'rgb(37, 99, 235)',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        yAxisID: 'y'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                title: function(context) {
+                                    return new Date(context[0].label).toLocaleDateString();
+                                },
+                                label: function(context) {
+                                    const currency = getCurrencySymbol(ticker);
+                                    return `${ticker}: ${currency}${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: {
+                                    size: 14,
+                                    weight: '500'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Price',
+                                font: {
+                                    size: 14,
+                                    weight: '500'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    const currency = getCurrencySymbol(ticker);
+                                    return currency + value.toFixed(2);
+                                },
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 6
+                        }
+                    }
+                }
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const resultDiv = document.getElementById('result');
+            const existingSuccess = resultDiv.querySelector('.success');
+            if (existingSuccess) {
+                existingSuccess.remove();
+            }
+            resultDiv.insertAdjacentHTML('afterbegin', `<div class="success">${message}</div>`);
+        }
+
+        // Creative Query Loading Functions
+        let queryProgressInterval;
+        let currentStep = 0;
+        const querySteps = [
+            { text: "Parsing Query", duration: 800 },
+            { text: "Searching Data", duration: 1200 },
+            { text: "Analyzing Patterns", duration: 1500 },
+            { text: "Processing Results", duration: 1000 },
+            { text: "Finalizing", duration: 600 }
+        ];
+
+        const creativeStatusMessages = [
+            "Initializing AI analysis",
+            "Waking up the market wizards 🧙‍♂️",
+            "Consulting the crystal ball 🔮",
+            "Scanning financial databases 📊",
+            "Analyzing market patterns 📈",
+            "Cross-referencing historical data 📅",
+            "Running algorithmic magic ✨",
+            "Almost there... calculating probabilities 🎯"
+        ];
+
+        function showQueryLoading(show) {
+            const loadingDiv = document.getElementById('queryLoading');
+            loadingDiv.style.display = show ? 'block' : 'none';
+
+            if (show) {
+                // Reset progress bar and steps
+                document.getElementById('queryProgressBar').style.width = '0%';
+                document.querySelectorAll('.query-step').forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+                currentStep = 0;
+                clearInterval(queryProgressInterval);
+
+                // Hide typing text initially
+                document.getElementById('queryTypingText').style.display = 'none';
+            }
+        }
+
+        function startQueryProgressAnimation(query) {
+            let statusIndex = 0;
+            const statusText = document.getElementById('queryStatusText');
+            const typingText = document.getElementById('queryTypingText');
+
+            // Start with initial status
+            statusText.innerHTML = `${creativeStatusMessages[0]}<span class="query-dots"><span class="query-dot"></span><span class="query-dot"></span><span class="query-dot"></span></span>`;
+
+            // Animate status messages
+            const statusInterval = setInterval(() => {
+                statusIndex = (statusIndex + 1) % creativeStatusMessages.length;
+                statusText.innerHTML = `${creativeStatusMessages[statusIndex]}<span class="query-dots"><span class="query-dot"></span><span class="query-dot"></span><span class="query-dot"></span></span>`;
+            }, 1500);
+
+            // Start step-by-step progress
+            let stepIndex = 0;
+            let progressWidth = 0;
+
+            queryProgressInterval = setInterval(() => {
+                if (stepIndex < querySteps.length) {
+                    // Update step display
+                    const steps = document.querySelectorAll('.query-step');
+                    if (currentStep > 0) {
+                        steps[currentStep - 1].classList.remove('active');
+                        steps[currentStep - 1].classList.add('completed');
+                    }
+
+                    if (currentStep < steps.length) {
+                        steps[currentStep].classList.add('active');
+                    }
+
+                    // Update progress bar
+                    const targetWidth = ((currentStep + 1) / querySteps.length) * 100;
+                    document.getElementById('queryProgressBar').style.width = targetWidth + '%';
+
+                    // Show the user's query in a readable, wider box on the first step
+                    if (currentStep === 0) {
+                        typingText.style.display = 'block';
+                        typingText.textContent = `"${query}"`;
+                    }
+
+                    // Update status text for current step
+                    const stepText = querySteps[currentStep].text;
+                    statusText.innerHTML = `${stepText}... <span class="query-dots"><span class="query-dot"></span><span class="query-dot"></span><span class="query-dot"></span></span>`;
+
+                    currentStep++;
+                    stepIndex++;
+
+                    // Clear status interval when moving to actual steps
+                    if (stepIndex === 1) {
+                        clearInterval(statusInterval);
+                    }
+                } else {
+                    clearInterval(queryProgressInterval);
+                }
+            }, 1200); // Progress every 1.2 seconds
+        }
+
+        function completeQueryProgress() {
+            clearInterval(queryProgressInterval);
+
+            // Complete all remaining steps quickly
+            const steps = document.querySelectorAll('.query-step');
+            const statusText = document.getElementById('queryStatusText');
+            const progressBar = document.getElementById('queryProgressBar');
+            const marketElements = document.querySelector('.query-market-elements');
+
+            // Safety check for required elements
+            if (!steps || !steps.length || !statusText || !progressBar) {
+                console.warn('Query progress elements not found');
+                return;
+            }
+
+            for (let i = currentStep; i < steps.length; i++) {
+                setTimeout(() => {
+                    if (i > 0 && steps[i - 1]) {
+                        steps[i - 1].classList.remove('active');
+                        steps[i - 1].classList.add('completed');
+                    }
+                    if (steps[i]) {
+                        steps[i].classList.add('active');
+                    }
+
+                    const progressWidth = ((i + 1) / steps.length) * 100;
+                    progressBar.style.width = progressWidth + '%';
+
+                    if (i === steps.length - 1) {
+                        // Final completion animation
+                        setTimeout(() => {
+                            if (steps[i]) {
+                                steps[i].classList.remove('active');
+                                steps[i].classList.add('completed');
+                                steps[i].classList.add('query-completed');
+                            }
+                            progressBar.classList.add('query-progress-bar-completed');
+                            marketElements.classList.add('celebration');
+
+                            statusText.innerHTML = 'Analysis Complete! 🎉✨';
+                            statusText.style.animation = 'bounce 0.6s ease';
+
+                            // Add confetti-like effect
+                            createConfettiEffect();
+                        }, 300);
+                    }
+                }, (i - currentStep) * 200);
+            }
+        }
+
+        function createConfettiEffect() {
+            const container = document.querySelector('.query-loading');
+            const emojis = ['🎉', '✨', '📈', '💰', '🕯️', '📊'];
+
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    confetti.style.position = 'absolute';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = '20%';
+                    confetti.style.fontSize = (Math.random() * 20 + 15) + 'px';
+                    confetti.style.animation = `float ${Math.random() * 2 + 1}s ease-out forwards`;
+                    confetti.style.zIndex = '1000';
+
+                    container.appendChild(confetti);
+
+                    setTimeout(() => {
+                        if (confetti.parentNode) {
+                            confetti.parentNode.removeChild(confetti);
+                        }
+                    }, 2000);
+                }, i * 100);
+            }
+        }
+
+        // Load cache stats on page load
+        getCacheStats();
+
+        // Add enter key listener for natural query input
+        document.getElementById('naturalQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitNaturalQuery();
+            }
+        });
+    </script>
+</body>
+</html>
