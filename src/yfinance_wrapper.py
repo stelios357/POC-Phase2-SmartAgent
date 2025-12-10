@@ -101,6 +101,9 @@ def resolve_ticker(ticker: str, exchange: str = 'nse') -> str:
     5. Apply exchange-specific suffix if no suffix present
     """
     ticker = ticker.upper().strip()
+    # Normalize common ampersand forms by removing spaces so they match mappings
+    if "&" in ticker:
+        ticker = ticker.replace(" ", "")
 
     # Check index mappings first (highest priority for indices)
     if ticker in TICKER_CONFIG.get("index_mappings", {}):
@@ -263,11 +266,12 @@ def safe_yfinance_call(operation_name: str, ticker: str, call_func, exchange: st
     except Exception as e:
         # Handle various yfinance exceptions
         message = str(e)
+        message_lower = message.lower()
 
-        if ("No data found" in message or "not found" in message.lower() or
-            "delisted" in message.lower() or "No data returned" in message):
+        if ("no data found" in message_lower or "not found" in message_lower or
+            "delisted" in message_lower or "no data returned" in message_lower):
             error = InvalidTickerError(f"Ticker {original_ticker} not found")
-        elif "timeout" in message.lower() or "connection" in message.lower():
+        elif "timeout" in message_lower or "connection" in message_lower:
             error = NetworkError(f"Network error for {original_ticker}")
         else:
             error = YFinanceError(f"Unexpected error for {original_ticker}: {message}")

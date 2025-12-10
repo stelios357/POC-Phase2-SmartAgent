@@ -236,17 +236,20 @@ def parse_query(query: str,
             # This is a simple heuristic
             query_upper = original_query.upper()
             
-            # Simple punctuation cleaning for name matching
+            # Simple punctuation cleaning for name matching, preserve ampersand by normalizing both sides
             import string
-            for char in string.punctuation:
+            punctuation_keep_amp = string.punctuation.replace("&", "")
+            for char in punctuation_keep_amp:
                 query_upper = query_upper.replace(char, " ")
+            query_upper = query_upper.replace("&", "&")
             query_upper = " ".join(query_upper.split())
             
             for name, ticker in TICKER_CONFIG.get("common_mappings", {}).items():
+                name_normalized = name.replace("&", "&")
                 # Check for exact word match to avoid false positives
                 # e.g. "L&T" -> "LT"
                 # We need to handle special chars in name lookup if needed, but for now exact match
-                if f" {name} " in f" {query_upper} ": # simplistic word boundary check
+                if f" {name_normalized} " in f" {query_upper} ": # simplistic word boundary check
                      logging.debug(f"DEBUG: parse_query() - Found common name '{name}' -> '{ticker}'")
                      symbol_only = ticker.split('.')[0]
                      extracted["ticker"] = symbol_only  # Backward compatibility

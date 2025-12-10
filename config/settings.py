@@ -82,6 +82,8 @@ TICKER_CONFIG = {
         "NSEI": "^NSEI",
         "NIFTYBANK": "^NSEBANK",
         "BANKNIFTY": "^NSEBANK",
+        "FINNIFTY": "^NSEFIN",
+        "MIDCPNIFTY": "^NSEMIDCPN",
         "NIFTYIT": "^NSMIDCPIT",
         "NIFTYITINDEX": "^NSMIDCPIT",
         "NIFTYAUTO": "^CNXAUTO",
@@ -121,6 +123,8 @@ TICKER_CONFIG = {
         "ITC": "ITC.NS",
         "KOTAKBANK": "KOTAKBANK.NS",
         "LT": "LT.NS",
+        "L&T": "LT.NS",
+        "M&M": "M&M.NS",
     }
 }
 
