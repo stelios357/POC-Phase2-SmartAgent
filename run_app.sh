@@ -37,5 +37,5 @@ echo "🌐 Open your browser to: http://localhost:5001"
 echo "🛑 Press Ctrl+C to stop the server"
 echo ""
 
-# Run the Flask app with port 5001
-python src/app.py --port 5001
+# Run the Flask app with port 5001 using the entry point script
+python run_app.py --port 5001
